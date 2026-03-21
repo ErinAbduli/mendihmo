@@ -1,5 +1,13 @@
+import Hero from "@/components/hero";
+import PlaftormStats from "@/components/plaftorm-stats";
+
 const Home = () => {
-	return <div>Home</div>;
+	return (
+		<>
+			<Hero />
+			<PlaftormStats />
+		</>
+	);
 };
 
 export default Home;
