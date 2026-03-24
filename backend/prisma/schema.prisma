@@ -7,6 +7,11 @@ datasource db {
   provider = "mysql"
 }
 
+enum Statusi {
+  aktiv
+  joaktiv
+}
+
 model User {
   id                  Int             @id @default(autoincrement())
   emri                String
@@ -18,7 +23,7 @@ model User {
   lockout_enabled     Boolean         @default(false)
   access_failed_count Int             @default(0)
   data_krijimit       DateTime        @default(now())
-  statusi             String
+  statusi             Statusi         @default(aktiv)
 
   userRoles     UserRole[]
   userClaims    UserClaim[]

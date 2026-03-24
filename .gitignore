@@ -21,6 +21,7 @@ dist-ssr/
 backend/prisma/.prisma/
 backend/prisma/dev.db
 backend/prisma/generated/
+backend/generated/prisma/
 
 # Logs
 logs/
