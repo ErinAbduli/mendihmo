@@ -12,6 +12,12 @@ enum Statusi {
   joaktiv
 }
 
+enum RoleName {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 model User {
   id                  Int             @id @default(autoincrement())
   emri                String
@@ -35,7 +41,7 @@ model Role {
   id              Int        @id @default(autoincrement())
   emertimi        String
   pershkrimi      String?
-  normalized_name String     @unique
+  normalized_name RoleName   @unique @default(USER)
 
   userRoles UserRole[]
 }

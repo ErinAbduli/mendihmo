@@ -17,14 +17,35 @@ export const authService = {
 
 		const hashedPassword = await bcrypt.hash(password, 12);
 
-		const user = await prisma.user.create({
-			data: {
-				emri: name,
-				mbiemri: mbiemri,
-				email,
-				password_hash: hashedPassword,
-				statusi: "aktiv",
-			},
+		const user = await prisma.$transaction(async (tx) => {
+			const createdUser = await tx.user.create({
+				data: {
+					emri: name,
+					mbiemri: mbiemri,
+					email,
+					password_hash: hashedPassword,
+					statusi: "aktiv",
+				},
+			});
+
+			const defaultRole = await tx.role.upsert({
+				where: { normalized_name: "USER" },
+				update: {},
+				create: {
+					emertimi: "USER",
+					normalized_name: "USER",
+					pershkrimi: "Default role for new users",
+				},
+			});
+
+			await tx.userRole.create({
+				data: {
+					user_id: createdUser.id,
+					role_id: defaultRole.id,
+				},
+			});
+
+			return createdUser;
 		});
 
 		return this.generateTokens({
