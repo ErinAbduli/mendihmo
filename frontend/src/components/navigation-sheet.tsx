@@ -18,7 +18,7 @@ export const NavigationSheet = () => {
 			</VisuallyHidden>
 
 			<SheetTrigger asChild>
-				<Button className="rounded-full" size="icon" variant="outline">
+				<Button className="rounded-md" size="icon" variant="outline">
 					<Menu />
 				</Button>
 			</SheetTrigger>

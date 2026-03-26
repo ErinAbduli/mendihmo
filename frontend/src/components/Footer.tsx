@@ -153,70 +153,67 @@ const footerSections = [
 
 const Footer = () => {
 	return (
-		<div className="flex min-h-screen flex-col">
-			<div className="grow bg-muted" />
-			<footer className="border-t">
-				<div className="mx-auto max-w-(--breakpoint-xl)">
-					<div className="grid grid-cols-2 gap-x-8 gap-y-10 px-6 py-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 xl:px-0">
-						<div className="col-span-full xl:col-span-2">
-							<Logo />
+		<footer className="border-t bg-muted/30">
+			<div className="mx-auto max-w-(--breakpoint-xl)">
+				<div className="grid grid-cols-2 gap-x-8 gap-y-10 px-6 py-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 xl:px-0">
+					<div className="col-span-full xl:col-span-2">
+						<Logo />
 
-							<p className="mt-4 text-muted-foreground">
-								Mëndihmo është platforma shqiptare e bamirësisë
-								dhe financimit kolektiv ku çdokush mund të nisë
-								një kauzë ose të mbështesë ato që i beson. Nga
-								nevojat emergjente deri te ëndrrat e mëdha çdo
-								kontribut ka rëndësi.
-							</p>
-						</div>
-
-						{footerSections.map(({ title, links }) => (
-							<div key={title}>
-								<h6 className="font-medium">{title}</h6>
-								<ul className="mt-6 space-y-4">
-									{links.map(({ title, href }) => (
-										<li key={title}>
-											<Link
-												className="text-muted-foreground hover:text-foreground"
-												to={href}
-											>
-												{title}
-											</Link>
-										</li>
-									))}
-								</ul>
-							</div>
-						))}
+						<p className="mt-4 text-muted-foreground">
+							Mëndihmo është platforma shqiptare e bamirësisë dhe
+							financimit kolektiv ku çdokush mund të nisë një
+							kauzë ose të mbështesë ato që i beson. Nga nevojat
+							emergjente deri te ëndrrat e mëdha çdo kontribut ka
+							rëndësi.
+						</p>
 					</div>
-					<Separator />
-					<div className="flex flex-col-reverse items-center justify-between gap-x-2 gap-y-5 px-6 py-8 sm:flex-row xl:px-0">
-						{/* Copyright */}
-						<span className="text-muted-foreground">
-							&copy; {new Date().getFullYear()}{" "}
-							<Link to="/" target="_blank">
-								mëndihmo
-							</Link>
-							. Të gjitha të drejtat e rezervuara.
-						</span>
 
-						<div className="flex items-center gap-5 text-muted-foreground">
-							<Link to="#" target="_blank">
-								<BsTwitterX className="h-5 w-5" />
-							</Link>
-							<Link to="#" target="_blank">
-								<BsInstagram className="h-5 w-5" />
-							</Link>
-							<Link to="#" target="_blank">
-								<BsGithub className="h-5 w-5" />
-							</Link>
-							<Link to="#" target="_blank">
-								<BsLinkedin className="h-5 w-5" />
-							</Link>
+					{footerSections.map(({ title, links }) => (
+						<div key={title}>
+							<h6 className="font-medium">{title}</h6>
+							<ul className="mt-6 space-y-4">
+								{links.map(({ title, href }) => (
+									<li key={title}>
+										<Link
+											className="text-muted-foreground hover:text-foreground"
+											to={href}
+										>
+											{title}
+										</Link>
+									</li>
+								))}
+							</ul>
 						</div>
+					))}
+				</div>
+				<Separator />
+				<div className="flex flex-col-reverse items-center justify-between gap-x-2 gap-y-5 px-6 py-8 sm:flex-row xl:px-0">
+					{/* Copyright */}
+					<span className="text-muted-foreground">
+						&copy; {new Date().getFullYear()}{" "}
+						<Link to="/" target="_blank">
+							mëndihmo
+						</Link>
+						. Të gjitha të drejtat e rezervuara.
+					</span>
+
+					<div className="flex items-center gap-5 text-muted-foreground">
+						<Link to="#" target="_blank">
+							<BsTwitterX className="h-5 w-5" />
+						</Link>
+						<Link to="#" target="_blank">
+							<BsInstagram className="h-5 w-5" />
+						</Link>
+						<Link to="#" target="_blank">
+							<BsGithub className="h-5 w-5" />
+						</Link>
+						<Link to="#" target="_blank">
+							<BsLinkedin className="h-5 w-5" />
+						</Link>
 					</div>
 				</div>
-			</footer>
-		</div>
+			</div>
+		</footer>
 	);
 };
 

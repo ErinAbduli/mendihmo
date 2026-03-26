@@ -12,7 +12,7 @@ export const registerSchema = z.object({
 	email: z.email("Ju lutemi vendosni një email të vlefshme"),
 	password: z
 		.string()
-		.min(6, "Fjalëkalimi duhet të ketë të paktën 6 karaktere")
+		.min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere")
 		.max(100, "Fjalëkalimi duhet të ketë më pak se 100 karaktere"),
 });
 
@@ -20,5 +20,5 @@ export const loginSchema = z.object({
 	email: z.email("Ju lutemi vendosni një email të vlefshme"),
 	password: z
 		.string()
-		.min(6, "Fjalëkalimi duhet të ketë të paktën 6 karaktere"),
+		.min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere"),
 });
