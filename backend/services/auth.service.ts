@@ -48,10 +48,16 @@ export const authService = {
 			return createdUser;
 		});
 
+		const userRole = await prisma.userRole.findFirst({
+			where: { user_id: user.id },
+			select: { role: { select: { normalized_name: true } } },
+		});
+
 		return this.generateTokens({
 			id: user.id,
 			email: user.email,
 			name: user.emri,
+			role: userRole?.role.normalized_name || "USER",
 		});
 	},
 
@@ -69,10 +75,16 @@ export const authService = {
 			throw new Error("Invalid email or password");
 		}
 
+		const userRole = await prisma.userRole.findFirst({
+			where: { user_id: user.id },
+			select: { role: { select: { normalized_name: true } } },
+		});
+
 		return this.generateTokens({
 			id: user.id,
 			email: user.email,
 			name: user.emri,
+			role: userRole?.role.normalized_name || "USER",
 		});
 	},
 
@@ -105,14 +117,25 @@ export const authService = {
 			throw new Error("User not found");
 		}
 
+		const userRole = await prisma.userRole.findFirst({
+			where: { user_id: user.id },
+			select: { role: { select: { normalized_name: true } } },
+		});
+
 		return this.generateTokens({
 			id: user.id,
 			email: user.email,
 			name: user.emri,
+			role: userRole?.role.normalized_name || "USER",
 		});
 	},
 
-	async generateTokens(user: { id: number; email: string; name: string }) {
+	async generateTokens(user: {
+		id: number;
+		email: string;
+		name: string;
+		role: string;
+	}) {
 		const userId = user.id;
 		const accessToken = jwt.sign({ userId }, JWT_CONFIG.access.secret, {
 			expiresIn: JWT_CONFIG.access.expiresIn,
@@ -132,7 +155,12 @@ export const authService = {
 		return {
 			accessToken,
 			refreshToken,
-			user: { id: user.id, email: user.email, name: user.name },
+			user: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				role: user.role,
+			},
 		};
 	},
 

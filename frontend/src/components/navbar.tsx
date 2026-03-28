@@ -12,7 +12,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/authStore";
-import { ChevronDown, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, LogOut, UserRound, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router";
 
 const Navbar = () => {
@@ -20,6 +20,11 @@ const Navbar = () => {
 	const user = useAuthStore((state) => state.user);
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const logout = useAuthStore((state) => state.logout);
+	const initialized = useAuthStore((state) => state.initialized);
+
+	if (!initialized) {
+		return null;
+	}
 
 	const getInitials = (name?: string, email?: string) => {
 		const normalizedName = (name ?? "").trim();
@@ -77,11 +82,24 @@ const Navbar = () => {
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
 									className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
-									onClick={() => navigate("/")}
+									onClick={() => navigate("/profile")}
 								>
 									<UserRound className="size-4" />
 									Profili
 								</DropdownMenuItem>
+								{isAuthenticated &&
+									(user.role === "ADMIN" ||
+										user.role === "MODERATOR") && (
+										<DropdownMenuItem
+											className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
+											onClick={() =>
+												navigate("/dashboard")
+											}
+										>
+											<LayoutDashboard className="size-4" />
+											Dashboard
+										</DropdownMenuItem>
+									)}
 								<DropdownMenuItem
 									onClick={handleLogout}
 									variant="destructive"

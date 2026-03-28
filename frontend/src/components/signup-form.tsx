@@ -159,7 +159,12 @@ export const SignUpForm = () => {
 					) : null}
 				</div>
 
-				<Button className="mt-6 w-full" disabled={isLoading} size="lg" type="submit">
+				<Button
+					className="mt-6 w-full"
+					disabled={isLoading}
+					size="lg"
+					type="submit"
+				>
 					Regjistrohu
 				</Button>
 			</form>

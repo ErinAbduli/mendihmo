@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
-import { prisma } from "./lib/prisma.ts";
 import authRoutes from "./routes/auth.routes.ts";
+import userRoutes from "./routes/user.routes.ts";
 import helmet from "helmet";
 
 dotenv.config();
@@ -21,6 +21,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", async (req: express.Request, res: express.Response) => {
 	res.send("Hello, World!");

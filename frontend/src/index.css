@@ -175,7 +175,11 @@
 	* {
 		@apply border-border outline-ring/50;
 		scrollbar-width: thin;
-		scrollbar-color: color-mix(in oklab, var(--muted-foreground) 28%, transparent)
+		scrollbar-color: color-mix(
+				in oklab,
+				var(--muted-foreground) 28%,
+				transparent
+			)
 			transparent;
 	}
 	body {
@@ -196,12 +200,20 @@
 }
 
 *::-webkit-scrollbar-thumb {
-	background: color-mix(in oklab, var(--muted-foreground) 28%, transparent) !important;
+	background: color-mix(
+		in oklab,
+		var(--muted-foreground) 28%,
+		transparent
+	) !important;
 	border: 2px solid transparent;
 	border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:active {
-	background: color-mix(in oklab, var(--muted-foreground) 28%, transparent) !important;
+	background: color-mix(
+		in oklab,
+		var(--muted-foreground) 28%,
+		transparent
+	) !important;
 }

@@ -1,13 +1,13 @@
-import type { NextFunction, Request, Response } from "express";
+import type { NextFunction, Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/jwt.config.ts";
 
 export interface AuthenticatedRequest extends Request {
-	userId: string;
+	userId: number;
 }
 
 type AccessTokenPayload = {
-	userId: string;
+	userId: number | string;
 };
 
 const isAccessTokenPayload = (
@@ -17,12 +17,13 @@ const isAccessTokenPayload = (
 		typeof payload === "object" &&
 		payload !== null &&
 		"userId" in payload &&
-		typeof payload.userId === "string"
+		(typeof payload.userId === "string" ||
+			typeof payload.userId === "number")
 	);
 };
 
-export const authRequired = (
-	req: AuthenticatedRequest,
+export const authRequired: RequestHandler = (
+	req: Request,
 	res: Response,
 	next: NextFunction,
 ) => {
@@ -48,7 +49,16 @@ export const authRequired = (
 		if (!isAccessTokenPayload(payload)) {
 			return res.status(401).json({ error: "Unauthorized" });
 		}
-		req.userId = payload.userId;
+		const parsedUserId =
+			typeof payload.userId === "string"
+				? Number.parseInt(payload.userId, 10)
+				: payload.userId;
+
+		if (!Number.isFinite(parsedUserId)) {
+			return res.status(401).json({ error: "Unauthorized" });
+		}
+
+		(req as AuthenticatedRequest).userId = parsedUserId;
 		next();
 	} catch {
 		return res.status(401).json({ error: "Unauthorized" });
