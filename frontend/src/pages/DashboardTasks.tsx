@@ -11,27 +11,27 @@ import { Button } from "@/components/ui/button";
 const tasks = [
 	{
 		id: "TSK-101",
-		title: "Review new donation workflow",
-		priority: "High",
-		status: "In Progress",
+		title: "Rishiko rrjedhën e re të donacioneve",
+		priority: "E lartë",
+		status: "Në progres",
 	},
 	{
 		id: "TSK-102",
-		title: "Prepare onboarding email template",
-		priority: "Medium",
-		status: "Todo",
+		title: "Përgatit modelin e email-it të mirëseardhjes",
+		priority: "Mesatare",
+		status: "Për t'u bërë",
 	},
 	{
 		id: "TSK-103",
-		title: "Audit auth refresh token handling",
-		priority: "High",
-		status: "In Review",
+		title: "Auditim i menaxhimit të refresh token",
+		priority: "E lartë",
+		status: "Në rishikim",
 	},
 	{
 		id: "TSK-104",
-		title: "Update help center FAQ",
-		priority: "Low",
-		status: "Done",
+		title: "Përditëso FAQ e qendrës së ndihmës",
+		priority: "E ulët",
+		status: "Përfunduar",
 	},
 ];
 
@@ -39,10 +39,10 @@ const statusVariant = (
 	status: string,
 ): "default" | "secondary" | "destructive" => {
 	switch (status) {
-		case "Done":
+		case "Përfunduar":
 			return "default";
-		case "In Progress":
-		case "In Review":
+		case "Në progres":
+		case "Në rishikim":
 			return "secondary";
 		default:
 			return "destructive";
@@ -54,19 +54,21 @@ const DashboardTasks = () => {
 		<div className="space-y-5 sm:space-y-6">
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<div>
-					<h1 className="font-bold text-2xl tracking-tight">Tasks</h1>
+					<h1 className="font-bold text-2xl tracking-tight">
+						Detyrat
+					</h1>
 					<p className="text-muted-foreground text-sm sm:text-base">
-						A focused task board for core admin operations.
+						Panel i fokusuar për detyrat kryesore të adminit.
 					</p>
 				</div>
-				<Button size="sm">Create task</Button>
+				<Button size="sm">Krijo detyrë</Button>
 			</div>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Monthly Tasks</CardTitle>
+					<CardTitle>Detyrat mujore</CardTitle>
 					<CardDescription>
-						Inspired by shadcn-admin task management essentials.
+						Detyrat kryesore për menaxhimin e panelit.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-3">

@@ -1,6 +1,7 @@
 import { isAxiosError } from "axios";
 import { create } from "zustand";
 import { apiClient, getAccessToken, setAccessToken } from "@/lib/api";
+import { localizeErrorMessage } from "@/lib/error-utils";
 
 const AUTH_SESSION_KEY = "hasSession";
 
@@ -60,15 +61,17 @@ const getErrorMessage = (error: unknown) => {
 			return "Nuk mund të lidhemi me serverin. Kontrolloni nëse backend është aktiv dhe CORS është i konfiguruar saktë.";
 		}
 
+		const rawMessage =
+			error.response.data?.error || error.response.data?.message;
+
 		return (
-			error.response.data?.error ||
-			error.response.data?.message ||
+			localizeErrorMessage(rawMessage) ||
 			"Ndodhi një gabim në autentikim."
 		);
 	}
 
 	if (error instanceof Error) {
-		return error.message;
+		return localizeErrorMessage(error.message) ?? error.message;
 	}
 
 	return "Ndodhi një gabim i papritur.";

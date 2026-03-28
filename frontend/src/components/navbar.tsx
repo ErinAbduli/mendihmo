@@ -97,7 +97,7 @@ const Navbar = () => {
 											}
 										>
 											<LayoutDashboard className="size-4" />
-											Dashboard
+											Paneli
 										</DropdownMenuItem>
 									)}
 								<DropdownMenuItem

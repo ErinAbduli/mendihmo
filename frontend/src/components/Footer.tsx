@@ -5,94 +5,94 @@ import { Logo } from "@/components/logo";
 
 const footerSections = [
 	{
-		title: "Product",
+		title: "Produkti",
 		links: [
 			{
-				title: "Overview",
+				title: "Përmbledhje",
 				href: "#",
 			},
 			{
-				title: "Features",
+				title: "Veçori",
 				href: "#",
 			},
 			{
-				title: "Solutions",
+				title: "Zgjidhje",
 				href: "#",
 			},
 			{
-				title: "Tutorials",
+				title: "Udhëzues",
 				href: "#",
 			},
 			{
-				title: "Pricing",
+				title: "Çmimet",
 				href: "#",
 			},
 			{
-				title: "Releases",
+				title: "Versionet",
 				href: "#",
 			},
 		],
 	},
 	{
-		title: "Company",
+		title: "Kompania",
 		links: [
 			{
-				title: "About us",
+				title: "Rreth nesh",
 				href: "#",
 			},
 			{
-				title: "Careers",
+				title: "Karriera",
 				href: "#",
 			},
 			{
-				title: "Press",
+				title: "Shtypi",
 				href: "#",
 			},
 			{
-				title: "News",
+				title: "Lajme",
 				href: "#",
 			},
 			{
-				title: "Media kit",
+				title: "Materialet e medias",
 				href: "#",
 			},
 			{
-				title: "Contact",
+				title: "Kontakti",
 				href: "#",
 			},
 		],
 	},
 	{
-		title: "Resources",
+		title: "Burime",
 		links: [
 			{
-				title: "Blog",
+				title: "Blogu",
 				href: "#",
 			},
 			{
-				title: "Newsletter",
+				title: "Buletini",
 				href: "#",
 			},
 			{
-				title: "Events",
+				title: "Ngjarje",
 				href: "#",
 			},
 			{
-				title: "Help centre",
+				title: "Qendra e ndihmës",
 				href: "#",
 			},
 			{
-				title: "Tutorials",
+				title: "Udhëzues",
 				href: "#",
 			},
 			{
-				title: "Support",
+				title: "Mbështetje",
 				href: "#",
 			},
 		],
 	},
 	{
-		title: "Social",
+		title: "Rrjete sociale",
 		links: [
 			{
 				title: "Twitter",
@@ -121,14 +121,14 @@ const footerSections = [
 		],
 	},
 	{
-		title: "Legal",
+		title: "Ligjore",
 		links: [
 			{
-				title: "Terms",
+				title: "Kushtet",
 				href: "#",
 			},
 			{
-				title: "Privacy",
+				title: "Privatësia",
 				href: "#",
 			},
 			{
@@ -136,15 +136,15 @@ const footerSections = [
 				href: "#",
 			},
 			{
-				title: "Licenses",
+				title: "Licencat",
 				href: "#",
 			},
 			{
-				title: "Settings",
+				title: "Cilësimet",
 				href: "#",
 			},
 			{
-				title: "Contact",
+				title: "Kontakti",
 				href: "#",
 			},
 		],

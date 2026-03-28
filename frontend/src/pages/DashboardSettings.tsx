@@ -11,31 +11,30 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 const DashboardSettings = () => {
-	const [name, setName] = useState("Demo Admin");
+	const [name, setName] = useState("Admin Demo");
 	const [email, setEmail] = useState("admin@ubt.local");
 	const [organization, setOrganization] = useState("MëNdihmo");
 
 	return (
 		<div className="space-y-5 sm:space-y-6">
 			<div>
-				<h1 className="font-bold text-2xl tracking-tight">Settings</h1>
+				<h1 className="font-bold text-2xl tracking-tight">Cilësimet</h1>
 				<p className="text-muted-foreground text-sm sm:text-base">
-					Manage profile and basic admin preferences.
+					Menaxho profilin dhe preferencat bazë të administratorit.
 				</p>
 			</div>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Profile</CardTitle>
+					<CardTitle>Profili</CardTitle>
 					<CardDescription>
-						Simplified settings section based on shadcn-admin core
-						structure.
+						Seksioni i thjeshtuar i cilësimeve për panelin.
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
 					<div className="grid gap-2">
 						<label htmlFor="name" className="font-medium text-sm">
-							Full name
+							Emri i plotë
 						</label>
 						<Input
 							id="name"
@@ -59,7 +58,7 @@ const DashboardSettings = () => {
 							htmlFor="organization"
 							className="font-medium text-sm"
 						>
-							Organization
+							Organizata
 						</label>
 						<Input
 							id="organization"
@@ -73,7 +72,7 @@ const DashboardSettings = () => {
 					<Separator />
 
 					<div className="flex justify-end">
-						<Button type="button">Save changes</Button>
+						<Button type="button">Ruaj ndryshimet</Button>
 					</div>
 				</CardContent>
 			</Card>

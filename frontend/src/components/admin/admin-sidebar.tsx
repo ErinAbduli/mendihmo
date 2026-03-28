@@ -21,14 +21,14 @@ type AdminNavItem = {
 };
 
 const navItems: AdminNavItem[] = [
-	{ label: "Overview", to: "/dashboard", icon: LayoutDashboard },
-	{ label: "Campaigns", to: "/dashboard/campaigns", icon: Megaphone },
-	{ label: "Reports", to: "/dashboard/reports", icon: BarChart3 },
-	{ label: "Comments", to: "/dashboard/comments", icon: MessageSquare },
-	{ label: "Users", to: "/dashboard/users", icon: Users },
-	{ label: "Transactions", to: "/dashboard/transactions", icon: CreditCard },
-	{ label: "Categories", to: "/dashboard/categories", icon: Tags },
-	{ label: "Settings", to: "/dashboard/settings", icon: Settings },
+	{ label: "Përmbledhje", to: "/dashboard", icon: LayoutDashboard },
+	{ label: "Fushata", to: "/dashboard/campaigns", icon: Megaphone },
+	{ label: "Raporte", to: "/dashboard/reports", icon: BarChart3 },
+	{ label: "Komente", to: "/dashboard/comments", icon: MessageSquare },
+	{ label: "Përdoruesit", to: "/dashboard/users", icon: Users },
+	{ label: "Transaksione", to: "/dashboard/transactions", icon: CreditCard },
+	{ label: "Kategori", to: "/dashboard/categories", icon: Tags },
+	{ label: "Cilësimet", to: "/dashboard/settings", icon: Settings },
 ];
 
 type AdminSidebarProps = {

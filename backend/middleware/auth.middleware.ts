@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/jwt.config.ts";
+import { prisma } from "../lib/prisma.ts";
 
 export interface AuthenticatedRequest extends Request {
 	userId: number;
@@ -62,5 +63,39 @@ export const authRequired: RequestHandler = (
 		next();
 	} catch {
 		return res.status(401).json({ error: "Unauthorized" });
+	}
+};
+
+export const isAdmin: RequestHandler = async (
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) => {
+	const userId = (req as AuthenticatedRequest).userId;
+
+	if (!userId) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		const adminRole = await prisma.userRole.findFirst({
+			where: {
+				user_id: userId,
+				role: {
+					normalized_name: "ADMIN",
+				},
+			},
+			select: {
+				id: true,
+			},
+		});
+
+		if (!adminRole) {
+			return res.status(403).json({ error: "Forbidden" });
+		}
+
+		next();
+	} catch {
+		return res.status(500).json({ error: "Server error" });
 	}
 };

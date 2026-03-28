@@ -17,6 +17,7 @@ import {
 } from "./ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { localizeErrorMessage } from "@/lib/error-utils";
 
 const formSchema = z.object({
 	emri: z.string().min(2, {
@@ -66,7 +67,10 @@ export const SignUpForm = () => {
 				return;
 			}
 
-			toast.error(authError ?? backendMessage ?? "Regjistrimi dështoi.");
+			toast.error(
+				localizeErrorMessage(authError ?? backendMessage) ??
+					"Regjistrimi dështoi.",
+			);
 		}
 	}
 

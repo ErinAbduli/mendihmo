@@ -18,6 +18,14 @@ enum RoleName {
   ADMIN
 }
 
+enum CampaignStatus {
+  draft
+  pending
+  active
+  funded
+  failed
+}
+
 model User {
   id                  Int             @id @default(autoincrement())
   emri                String
@@ -35,6 +43,13 @@ model User {
   userClaims    UserClaim[]
   userTokens    UserToken[]
   refreshTokens RefreshToken[]
+
+  campaigns     Campaign[]
+  contributions Contribution[]
+  comments      Comment[]
+
+  transactions   Transaction[]
+  reports       Report[]
 }
 
 model Role {
@@ -85,4 +100,147 @@ model RefreshToken {
   revoked  DateTime?
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id              Int      @id @default(autoincrement())
+  title           String
+  slug            String   @unique
+  description     String
+  goalAmount      Float
+  currentAmount   Float    @default(0)
+  currency        String   @default("EUR")
+
+  startDate       DateTime
+  endDate         DateTime
+
+  status          CampaignStatus @default(draft)
+
+  creatorId       Int
+  categoryId      Int?
+
+  coverImage      String?
+  images          String?
+  videoUrl        String?
+
+  backersCount    Int      @default(0)
+  likesCount      Int      @default(0)
+  viewsCount      Int      @default(0)
+
+  isFeatured      Boolean  @default(false)
+  isApproved      Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  creator         User     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  category        Category? @relation(fields: [categoryId], references: [id])
+
+  rewards         Reward[]
+  contributions   Contribution[]
+  updates         Update[]
+  comments        Comment[]
+
+  transactions    Transaction[]
+}
+
+model Reward {
+  id               Int      @id @default(autoincrement())
+  campaignId       Int
+
+  title            String
+  description      String
+  amount           Float
+  limitedQuantity  Int?
+  claimedCount     Int      @default(0)
+
+  createdAt        DateTime @default(now())
+
+  campaign         Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contributions    Contribution[]
+}
+
+model Contribution {
+  id             Int      @id @default(autoincrement())
+
+  userId         Int
+  campaignId     Int
+  rewardId       Int?
+
+  amount         Float
+  paymentStatus  String   @default("pending")
+
+  createdAt      DateTime @default(now())
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign       Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  reward         Reward?   @relation(fields: [rewardId], references: [id])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+
+  campaigns Campaign[]
+}
+
+model Comment {
+  id          Int      @id @default(autoincrement())
+
+  userId      Int
+  campaignId  Int
+
+  content     String
+
+  createdAt   DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign    Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Update {
+  id          Int      @id @default(autoincrement())
+
+  campaignId  Int
+  title       String
+  content     String
+
+  createdAt   DateTime @default(now())
+
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id            Int      @id @default(autoincrement())
+
+  reporterId    Int
+
+  targetType    String
+  targetId      Int
+
+  reason        String
+  status        String   @default("pending")
+
+  createdAt     DateTime @default(now())
+
+  reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id             Int      @id @default(autoincrement())
+
+  userId         Int
+  campaignId     Int
+
+  amount         Float
+  currency       String   @default("EUR")
+
+  status         String
+  paymentMethod  String?
+
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id])
+  campaign       Campaign @relation(fields: [campaignId], references: [id])
 }

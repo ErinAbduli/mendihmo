@@ -9,36 +9,41 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const stats = [
-	{ title: "Revenue", value: "$24,320", delta: "+12.4%", icon: DollarSign },
-	{ title: "Orders", value: "1,284", delta: "+6.1%", icon: ShoppingBag },
-	{ title: "Customers", value: "3,412", delta: "+9.3%", icon: Users },
-	{ title: "Conversion", value: "4.9%", delta: "+0.7%", icon: CreditCard },
+	{
+		title: "Të ardhura",
+		value: "$24,320",
+		delta: "+12.4%",
+		icon: DollarSign,
+	},
+	{ title: "Porosi", value: "1,284", delta: "+6.1%", icon: ShoppingBag },
+	{ title: "Klientë", value: "3,412", delta: "+9.3%", icon: Users },
+	{ title: "Konvertim", value: "4.9%", delta: "+0.7%", icon: CreditCard },
 ];
 
 const activities = [
 	{
 		id: 1,
 		actor: "Arta Beqiri",
-		action: "completed checkout redesign",
-		time: "10 min ago",
+		action: "përfundoi ridizajnimin e checkout-it",
+		time: "para 10 min",
 	},
 	{
 		id: 2,
-		actor: "Admin Team",
-		action: "invited 2 new moderators",
-		time: "33 min ago",
+		actor: "Ekipi i adminëve",
+		action: "ftoi 2 moderatorë të rinj",
+		time: "para 33 min",
 	},
 	{
 		id: 3,
 		actor: "Dren Krasniqi",
-		action: "connected Stripe integration",
-		time: "1 hour ago",
+		action: "lidhi integrimin e Stripe",
+		time: "para 1 ore",
 	},
 	{
 		id: 4,
-		actor: "System",
-		action: "nightly backup finished",
-		time: "2 hours ago",
+		actor: "Sistemi",
+		action: "backup-i i natës përfundoi",
+		time: "para 2 orësh",
 	},
 ];
 
@@ -46,9 +51,12 @@ const Dashboard = () => {
 	return (
 		<div className="space-y-5 sm:space-y-6">
 			<div>
-				<h1 className="font-bold text-2xl tracking-tight">Dashboard</h1>
+				<h1 className="font-bold text-2xl tracking-tight">
+					Përmbledhje
+				</h1>
 				<p className="text-muted-foreground text-sm sm:text-base">
-					Overview of your platform performance and latest activity.
+					Përmbledhje e performancës së platformës dhe aktivitetit të
+					fundit.
 				</p>
 			</div>
 
@@ -68,7 +76,7 @@ const Dashboard = () => {
 									{item.value}
 								</div>
 								<p className="text-muted-foreground text-xs">
-									{item.delta} from last month
+									{item.delta} nga muaji i kaluar
 								</p>
 							</CardContent>
 						</Card>
@@ -79,9 +87,9 @@ const Dashboard = () => {
 			<div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
 				<Card>
 					<CardHeader>
-						<CardTitle>Recent Activity</CardTitle>
+						<CardTitle>Aktivitetet e fundit</CardTitle>
 						<CardDescription>
-							Most recent team and system updates.
+							Përditësimet më të fundit të ekipit dhe sistemit.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-3">
@@ -108,23 +116,23 @@ const Dashboard = () => {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Quick Notes</CardTitle>
+						<CardTitle>Shënime të shpejta</CardTitle>
 						<CardDescription>
-							Core admin shortcuts from shadcn-admin flow.
+							Shkurtesa kryesore të panelit.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-2 text-sm">
 						<p className="rounded-md border p-2">
-							Manage tasks in the Tasks page.
+							Menaxho detyrat në faqen e detyrave.
 						</p>
 						<p className="rounded-md border p-2">
-							Invite and review users in Users.
+							Fto dhe rishiko përdoruesit te Përdoruesit.
 						</p>
 						<p className="rounded-md border p-2">
-							Handle app integrations in Apps.
+							Menaxho integrimet e aplikacioneve.
 						</p>
 						<p className="rounded-md border p-2">
-							Update personal preferences in Settings.
+							Përditëso preferencat personale te Cilësimet.
 						</p>
 					</CardContent>
 				</Card>

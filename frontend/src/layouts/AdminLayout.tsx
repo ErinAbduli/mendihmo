@@ -65,7 +65,7 @@ const AdminLayout = () => {
 										<Button
 											variant="outline"
 											size="icon"
-											aria-label="Open sidebar"
+											aria-label="Hap panelin anësor"
 										>
 											<Menu className="size-4" />
 										</Button>
@@ -76,7 +76,7 @@ const AdminLayout = () => {
 										showCloseButton
 									>
 										<SheetTitle className="sr-only">
-											Dashboard navigation
+											Navigimi i panelit
 										</SheetTitle>
 										<AdminSidebar
 											onNavigate={() =>
@@ -90,7 +90,7 @@ const AdminLayout = () => {
 							<div className="relative max-w-lg flex-1">
 								<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 								<Input
-									placeholder="Search tasks, users or apps"
+									placeholder="Kërko detyra, përdorues ose aplikacione"
 									className="pl-9"
 								/>
 							</div>
@@ -117,10 +117,10 @@ const AdminLayout = () => {
 								>
 									<DropdownMenuLabel className="space-y-1">
 										<p className="font-medium text-sm">
-											{user?.name ?? "User"}
+											{user?.name ?? "Përdorues"}
 										</p>
 										<p className="text-muted-foreground text-xs">
-											{user?.email ?? "No email"}
+											{user?.email ?? "Pa email"}
 										</p>
 									</DropdownMenuLabel>
 									<DropdownMenuSeparator />
@@ -128,7 +128,7 @@ const AdminLayout = () => {
 										onClick={() => navigate("/")}
 									>
 										<LayoutDashboard className="size-4" />
-										Public home
+										Ballina publike
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() =>
@@ -136,14 +136,14 @@ const AdminLayout = () => {
 										}
 									>
 										<UserRound className="size-4" />
-										Profile settings
+										Cilësimet e profilit
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={handleLogout}
 										variant="destructive"
 									>
 										<LogOut className="size-4" />
-										Sign out
+										Dil
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>

@@ -14,7 +14,6 @@ import DashboardTransactions from "./pages/DashboardTransactions.tsx";
 import DashboardCategories from "./pages/DashboardCategories.tsx";
 import DashboardSettings from "./pages/DashboardSettings.tsx";
 import GuestRoute from "./utils/guest-route.tsx";
-import ProtectedRoute from "./utils/protected-route.tsx";
 import AdminProtectedRoute from "./utils/admin-protected-route.tsx";
 
 const router = createBrowserRouter([

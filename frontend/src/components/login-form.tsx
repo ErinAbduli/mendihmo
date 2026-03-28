@@ -17,6 +17,7 @@ import {
 } from "./ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/authStore";
+import { localizeErrorMessage } from "@/lib/error-utils";
 
 const formSchema = z.object({
 	email: z.email({
@@ -49,10 +50,10 @@ export const LoginForm = () => {
 			toast.success("Kyçja u krye me sukses.");
 			navigate("/");
 		} catch (error) {
-			const message = isAxiosError<{ error?: string }>(error)
+			const rawMessage = isAxiosError<{ error?: string }>(error)
 				? (error.response?.data?.error ?? authError ?? "Kyçja dështoi.")
 				: (authError ?? "Kyçja dështoi.");
-			toast.error(message);
+			toast.error(localizeErrorMessage(rawMessage) ?? "Kyçja dështoi.");
 		}
 	}
 
@@ -87,7 +88,7 @@ export const LoginForm = () => {
 						name="password"
 						render={({ field }) => (
 							<FormItem>
-								<FormLabel>Password</FormLabel>
+								<FormLabel>Fjalëkalimi</FormLabel>
 								<FormControl>
 									<Input
 										placeholder="Shkruani fjalëkalimin tuaj"

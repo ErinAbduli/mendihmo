@@ -10,26 +10,35 @@ import {
 } from "@/components/ui/card";
 
 const integrations = [
-	{ name: "Stripe", description: "Payments and payouts", connected: true },
-	{ name: "Mailchimp", description: "Campaign automation", connected: false },
-	{ name: "Slack", description: "Team notifications", connected: true },
+	{ name: "Stripe", description: "Pagesa dhe tërheqje", connected: true },
 	{
-		name: "Google Analytics",
-		description: "Traffic insights",
+		name: "Mailchimp",
+		description: "Automatizimi i fushatave",
 		connected: false,
 	},
-	{ name: "Sentry", description: "Error monitoring", connected: true },
-	{ name: "Notion", description: "Internal docs sync", connected: false },
+	{ name: "Slack", description: "Njoftime të ekipit", connected: true },
+	{
+		name: "Google Analytics",
+		description: "Analizë e trafikut",
+		connected: false,
+	},
+	{ name: "Sentry", description: "Monitorim i gabimeve", connected: true },
+	{
+		name: "Notion",
+		description: "Sinkronizim i dokumenteve",
+		connected: false,
+	},
 ];
 
 const DashboardApps = () => {
 	return (
 		<div className="space-y-5 sm:space-y-6">
 			<div>
-				<h1 className="font-bold text-2xl tracking-tight">Apps</h1>
+				<h1 className="font-bold text-2xl tracking-tight">
+					Aplikacionet
+				</h1>
 				<p className="text-muted-foreground text-sm sm:text-base">
-					Core integration management, adapted from shadcn-admin apps
-					page.
+					Menaxhimi i integrimeve kryesore të platformës.
 				</p>
 			</div>
 
@@ -52,9 +61,7 @@ const DashboardApps = () => {
 										app.connected ? "default" : "secondary"
 									}
 								>
-									{app.connected
-										? "Connected"
-										: "Not connected"}
+									{app.connected ? "I lidhur" : "I palidhur"}
 								</Badge>
 							</div>
 						</CardHeader>
@@ -63,7 +70,7 @@ const DashboardApps = () => {
 								variant={app.connected ? "outline" : "default"}
 								className="w-full"
 							>
-								{app.connected ? "Manage" : "Connect"}
+								{app.connected ? "Menaxho" : "Lidhu"}
 								<ArrowUpRight className="ml-1 size-4" />
 							</Button>
 						</CardContent>
