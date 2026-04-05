@@ -58,9 +58,5 @@ export const localizeErrorMessage = (
 		}
 	}
 
-	if (/^[\x00-\x7F]+$/.test(message)) {
-		return "Ndodhi një gabim. Ju lutemi provoni përsëri.";
-	}
-
 	return message;
 };

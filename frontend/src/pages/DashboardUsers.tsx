@@ -191,7 +191,8 @@ const normalizeUsers = (input: unknown): UserRow[] => {
 			Boolean(item && typeof item === "object"),
 		)
 		.map((user, index) => {
-			const name = `${user.emri} ${user.mbiemri}`.trim() || "Përdorues i panjohur";
+			const name =
+				`${user.emri} ${user.mbiemri}`.trim() || "Përdorues i panjohur";
 			const status = normalizeStatus(user.statusi);
 			const createdDate = user.data_krijimit;
 			const normalizedRole =
@@ -248,16 +249,16 @@ const buildColumns = ({
 	{
 		accessorKey: "role",
 		header: "Roli",
-		cell: ({ row }) => <Badge variant="outline">{roleLabel(row.original.role)}</Badge>,
+		cell: ({ row }) => (
+			<Badge variant="outline">{roleLabel(row.original.role)}</Badge>
+		),
 	},
 	{
 		accessorKey: "status",
 		header: "Statusi",
 		cell: ({ row }) => (
 			<Badge variant={statusVariant(row.original.status)}>
-				{row.original.status === "active"
-					? "Aktiv"
-					: "I pezulluar"}
+				{row.original.status === "active" ? "Aktiv" : "I pezulluar"}
 			</Badge>
 		),
 	},
@@ -406,9 +407,7 @@ const DashboardUsers = () => {
 							email: user.email,
 							role: user.role,
 							statusi:
-								user.status === "active"
-									? "aktiv"
-									: "joaktiv",
+								user.status === "active" ? "aktiv" : "joaktiv",
 						});
 						setEditDialogOpen(true);
 					},
@@ -503,8 +502,12 @@ const DashboardUsers = () => {
 	};
 
 	const totalRows = table.getFilteredRowModel().rows.length;
-	const startRow = totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
-	const endRow = Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalRows);
+	const startRow =
+		totalRows === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
+	const endRow = Math.min(
+		(pagination.pageIndex + 1) * pagination.pageSize,
+		totalRows,
+	);
 	const columnCount = table.getAllLeafColumns().length;
 
 	return (
@@ -707,7 +710,10 @@ const DashboardUsers = () => {
 											<FormItem>
 												<FormLabel>Emri</FormLabel>
 												<FormControl>
-													<Input type="text" {...field} />
+													<Input
+														type="text"
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -721,7 +727,10 @@ const DashboardUsers = () => {
 											<FormItem>
 												<FormLabel>Mbiemri</FormLabel>
 												<FormControl>
-													<Input type="text" {...field} />
+													<Input
+														type="text"
+														{...field}
+													/>
 												</FormControl>
 												<FormMessage />
 											</FormItem>
@@ -736,7 +745,10 @@ const DashboardUsers = () => {
 										<FormItem>
 											<FormLabel>Email</FormLabel>
 											<FormControl>
-												<Input type="email" {...field} />
+												<Input
+													type="email"
+													{...field}
+												/>
 											</FormControl>
 											<FormMessage />
 										</FormItem>
@@ -752,16 +764,24 @@ const DashboardUsers = () => {
 												<FormLabel>Roli</FormLabel>
 												<FormControl>
 													<Select
-														onValueChange={field.onChange}
+														onValueChange={
+															field.onChange
+														}
 														value={field.value}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="Zgjidh rolin" />
 														</SelectTrigger>
 														<SelectContent>
-															<SelectItem value="USER">Përdorues</SelectItem>
-															<SelectItem value="MODERATOR">Moderator</SelectItem>
-															<SelectItem value="ADMIN">Administrator</SelectItem>
+															<SelectItem value="USER">
+																Përdorues
+															</SelectItem>
+															<SelectItem value="MODERATOR">
+																Moderator
+															</SelectItem>
+															<SelectItem value="ADMIN">
+																Administrator
+															</SelectItem>
 														</SelectContent>
 													</Select>
 												</FormControl>
@@ -778,15 +798,21 @@ const DashboardUsers = () => {
 												<FormLabel>Statusi</FormLabel>
 												<FormControl>
 													<Select
-														onValueChange={field.onChange}
+														onValueChange={
+															field.onChange
+														}
 														value={field.value}
 													>
 														<SelectTrigger>
 															<SelectValue placeholder="Zgjidh statusin" />
 														</SelectTrigger>
 														<SelectContent>
-															<SelectItem value="aktiv">Aktiv</SelectItem>
-															<SelectItem value="joaktiv">Jo aktiv</SelectItem>
+															<SelectItem value="aktiv">
+																Aktiv
+															</SelectItem>
+															<SelectItem value="joaktiv">
+																Jo aktiv
+															</SelectItem>
 														</SelectContent>
 													</Select>
 												</FormControl>
@@ -803,7 +829,9 @@ const DashboardUsers = () => {
 										</Button>
 									</DialogClose>
 									<Button type="submit" disabled={isUpdating}>
-										{isUpdating ? "Duke përditësuar..." : "Ruaj ndryshimet"}
+										{isUpdating
+											? "Duke përditësuar..."
+											: "Ruaj ndryshimet"}
 									</Button>
 								</DialogFooter>
 							</form>
@@ -822,9 +850,7 @@ const DashboardUsers = () => {
 				>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>
-								A je i sigurt?
-							</AlertDialogTitle>
+							<AlertDialogTitle>A je i sigurt?</AlertDialogTitle>
 							<AlertDialogDescription>
 								{userToDelete
 									? `Ky veprim do ta fshijë përgjithmonë përdoruesin ${userToDelete.name}.`
@@ -832,7 +858,9 @@ const DashboardUsers = () => {
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel disabled={Boolean(deletingUserId)}>
+							<AlertDialogCancel
+								disabled={Boolean(deletingUserId)}
+							>
 								Anulo
 							</AlertDialogCancel>
 							<AlertDialogAction
@@ -842,7 +870,9 @@ const DashboardUsers = () => {
 								}}
 								disabled={Boolean(deletingUserId)}
 							>
-								{deletingUserId ? "Duke fshirë..." : "Fshi përdoruesin"}
+								{deletingUserId
+									? "Duke fshirë..."
+									: "Fshi përdoruesin"}
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>
@@ -937,7 +967,8 @@ const DashboardUsers = () => {
 
 					<div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
 						<p className="text-muted-foreground text-sm">
-							Duke shfaqur {startRow}-{endRow} nga {totalRows} përdorues
+							Duke shfaqur {startRow}-{endRow} nga {totalRows}{" "}
+							përdorues
 						</p>
 						<div className="flex items-center gap-2">
 							<Select
@@ -952,9 +983,15 @@ const DashboardUsers = () => {
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="5">5 / faqe</SelectItem>
-									<SelectItem value="10">10 / faqe</SelectItem>
-									<SelectItem value="20">20 / faqe</SelectItem>
-									<SelectItem value="50">50 / faqe</SelectItem>
+									<SelectItem value="10">
+										10 / faqe
+									</SelectItem>
+									<SelectItem value="20">
+										20 / faqe
+									</SelectItem>
+									<SelectItem value="50">
+										50 / faqe
+									</SelectItem>
 								</SelectContent>
 							</Select>
 
@@ -968,7 +1005,8 @@ const DashboardUsers = () => {
 									Mbrapa
 								</Button>
 								<span className="text-sm">
-									Faqja {pagination.pageIndex + 1} nga {table.getPageCount() || 1}
+									Faqja {pagination.pageIndex + 1} nga{" "}
+									{table.getPageCount() || 1}
 								</span>
 								<Button
 									variant="outline"

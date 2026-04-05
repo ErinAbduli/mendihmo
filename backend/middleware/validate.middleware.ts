@@ -1,10 +1,18 @@
-export const validate = (schema: any) => {
-	return (req: any, res: any, next: any) => {
+import { ZodError, type ZodTypeAny } from "zod";
+
+export const validate = (schema: ZodTypeAny) => {
+	return (req: unknown, res: any, next: any) => {
 		try {
-			schema.parse(req.body);
+			schema.parse((req as { body: unknown }).body);
 			next();
 		} catch (error) {
-			res.status(400).json({ error: (error as Error).message });
+			if (error instanceof ZodError) {
+				const firstIssue = error.issues[0];
+				const errorMessage = firstIssue?.message ?? "Të dhënat e dërguara nuk janë të vlefshme.";
+				return res.status(400).json({ error: errorMessage });
+			}
+
+			return res.status(400).json({ error: (error as Error).message });
 		}
 	};
 };

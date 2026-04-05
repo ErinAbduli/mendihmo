@@ -106,7 +106,7 @@ model Campaign {
   id              Int      @id @default(autoincrement())
   title           String
   slug            String   @unique
-  description     String
+  description     String   @db.Text
   goalAmount      Float
   currentAmount   Float    @default(0)
   currency        String   @default("EUR")
