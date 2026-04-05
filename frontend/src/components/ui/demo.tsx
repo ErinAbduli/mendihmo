@@ -1,6 +1,6 @@
 import { ArcGalleryHero } from "@/components/ui/arc-gallery-hero-component";
 
-export default function Hero() {
+export default function DemoOne() {
 	const memoryImages = [
 		"https://images.unsplash.com/photo-1755004609214-c252674df1ca?q=80&w=400&auto=format&fit=crop",
 		"https://images.unsplash.com/photo-1750218537952-0ae056c7f53a?q=80&w=400&auto=format&fit=crop",
@@ -16,5 +16,9 @@ export default function Hero() {
 		"https://images.unsplash.com/photo-1755048796967-75a82d214846?q=80&w=400&auto=format&fit=crop",
 	];
 
-	return <ArcGalleryHero images={memoryImages} />;
+	return (
+		<div className="w-full">
+			<ArcGalleryHero images={memoryImages} />
+		</div>
+	);
 }
