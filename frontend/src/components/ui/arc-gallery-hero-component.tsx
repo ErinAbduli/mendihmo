@@ -1,5 +1,6 @@
 "use client";
 
+import { Link } from "react-router";
 import { useEffect, useState } from "react";
 
 type ArcGalleryHeroProps = {
@@ -125,12 +126,18 @@ export const ArcGalleryHero = ({
 						deri te ëndrrat e mëdha çdo kontribut ka rëndësi.
 					</p>
 					<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-						<button className="w-full rounded-full bg-primary px-6 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto cursor-pointer">
+						<Link
+							to="/start-campaign"
+							className="w-full rounded-full bg-primary px-6 py-3 text-center text-primary-foreground shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto cursor-pointer"
+						>
 							Fillo një kauzë
-						</button>
-						<button className="w-full rounded-full border border-border/90 bg-background/80 px-6 py-3 text-foreground transition-all duration-200 hover:bg-accent/15 sm:w-auto cursor-pointer">
+						</Link>
+						<Link
+							to="/donate"
+							className="w-full rounded-full border border-border/90 bg-background/80 px-6 py-3 text-center text-foreground transition-all duration-200 hover:bg-accent/15 sm:w-auto cursor-pointer"
+						>
 							Ndihmo të tjerët
-						</button>
+						</Link>
 					</div>
 				</div>
 			</div>

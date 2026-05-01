@@ -41,7 +41,7 @@ export const NavMenu = (props: ComponentProps<typeof NavigationMenu>) => {
 								: "border-transparent text-foreground hover:text-primary"
 						}`}
 					>
-						<Link to="#">Dhuro</Link>
+						<Link to="/donate">Dhuro</Link>
 					</NavigationMenuLink>
 				</NavigationMenuItem>
 				<NavigationMenuItem>
@@ -53,7 +53,7 @@ export const NavMenu = (props: ComponentProps<typeof NavigationMenu>) => {
 								: "border-transparent text-foreground hover:text-primary"
 						}`}
 					>
-						<Link to="#">Fillo një kauzë</Link>
+						<Link to="/start-campaign">Fillo një kauzë</Link>
 					</NavigationMenuLink>
 				</NavigationMenuItem>
 				<NavigationMenuItem>
@@ -65,7 +65,7 @@ export const NavMenu = (props: ComponentProps<typeof NavigationMenu>) => {
 								: "border-transparent text-foreground hover:text-primary"
 						}`}
 					>
-						<Link to="#">Mbi ne</Link>
+						<Link to="/about">Mbi ne</Link>
 					</NavigationMenuLink>
 				</NavigationMenuItem>
 				<NavigationMenuItem>
@@ -77,7 +77,7 @@ export const NavMenu = (props: ComponentProps<typeof NavigationMenu>) => {
 								: "border-transparent text-foreground hover:text-primary"
 						}`}
 					>
-						<Link to="#">Na Kontaktoni</Link>
+						<Link to="/contact">Na Kontaktoni</Link>
 					</NavigationMenuLink>
 				</NavigationMenuItem>
 			</NavigationMenuList>

@@ -11,7 +11,7 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
 	if (!initialized) {
-		return null;
+		return <div className="min-h-screen" />;
 	}
 
 	if (isAuthenticated) {

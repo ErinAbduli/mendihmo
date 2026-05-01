@@ -37,7 +37,7 @@ const BentoGridItem = React.forwardRef<HTMLDivElement, BentoGridItemProps>(
 			<div
 				ref={ref}
 				className={cn(
-					"group row-span-1 flex flex-col justify-between space-y-4 overflow-hidden rounded-lg border-0 bg-transparent ring-0 p-4 shadow-none outline-none transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-none",
+					"group row-span-1 flex cursor-pointer flex-col justify-between space-y-4 overflow-hidden rounded-lg border-0 bg-transparent ring-0 p-4 shadow-none outline-none transition-colors duration-300 ease-in-out hover:bg-foreground/5 hover:shadow-none",
 					className,
 				)}
 				{...props}

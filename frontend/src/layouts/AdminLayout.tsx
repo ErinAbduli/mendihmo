@@ -26,6 +26,11 @@ const AdminLayout = () => {
 	const [openSidebar, setOpenSidebar] = useState(false);
 	const user = useAuthStore((state) => state.user);
 	const logout = useAuthStore((state) => state.logout);
+	const initialized = useAuthStore((state) => state.initialized);
+
+	if (!initialized) {
+		return <div className="min-h-screen bg-background" />;
+	}
 
 	const getInitials = (name?: string, email?: string) => {
 		const normalizedName = (name ?? "").trim();

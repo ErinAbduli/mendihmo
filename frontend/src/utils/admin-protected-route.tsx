@@ -1,21 +1,25 @@
-import { Navigate } from "react-router";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useAuthStore } from "@/store/authStore";
 
 const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+	const navigate = useNavigate();
 	const initialized = useAuthStore((state) => state.initialized);
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const user = useAuthStore((state) => state.user);
 
-	if (!initialized) {
-		return null;
-	}
+	useEffect(() => {
+		if (initialized) {
+			if (!isAuthenticated) {
+				navigate("/login", { replace: true });
+			} else if (user?.role !== "ADMIN") {
+				navigate("/unauthorized", { replace: true });
+			}
+		}
+	}, [initialized, isAuthenticated, user?.role, navigate]);
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
-	}
-
-	if (user?.role !== "ADMIN") {
-		return <Navigate to="/unauthorized" replace />;
+	if (!initialized || !isAuthenticated || user?.role !== "ADMIN") {
+		return <div className="min-h-screen bg-background" />;
 	}
 
 	return children;

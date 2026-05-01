@@ -55,6 +55,7 @@ const Navbar = () => {
 
 				<div className="flex items-center gap-2">
 					{isAuthenticated && user ? (
+						<>
 						<DropdownMenu modal={false}>
 							<DropdownMenuTrigger asChild>
 								<button
@@ -109,6 +110,7 @@ const Navbar = () => {
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
+						</>
 					) : (
 						<>
 							<Button

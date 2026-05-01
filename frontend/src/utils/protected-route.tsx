@@ -1,5 +1,6 @@
-import { Navigate } from "react-router";
 import type { ReactNode } from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router";
 import { useAuthStore } from "@/store/authStore";
 
 type ProtectedRouteProps = {
@@ -7,15 +8,18 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+	const navigate = useNavigate();
 	const initialized = useAuthStore((state) => state.initialized);
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
-	if (!initialized) {
-		return null;
-	}
+	useEffect(() => {
+		if (initialized && !isAuthenticated) {
+			navigate("/login", { replace: true });
+		}
+	}, [initialized, isAuthenticated, navigate]);
 
-	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
+	if (!initialized || !isAuthenticated) {
+		return <div className="min-h-screen bg-background" />;
 	}
 
 	return children;

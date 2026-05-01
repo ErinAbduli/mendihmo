@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { Lock, CheckCircle, Zap } from "lucide-react";
 
 export default function CallToAction() {
@@ -34,12 +35,18 @@ export default function CallToAction() {
 					</h1>
 
 					<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-						<button className="w-full rounded-full bg-white text-primary px-8 py-3 font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:w-auto cursor-pointer">
+						<Link
+							to="/start-campaign"
+							className="w-full rounded-full bg-white px-8 py-3 text-center font-medium text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:w-auto cursor-pointer"
+						>
 							Fillo një kauzë
-						</button>
-						<button className="w-full rounded-full border-2 border-white bg-transparent text-white px-8 py-3 font-medium transition-all duration-200 hover:bg-white/10 sm:w-auto cursor-pointer">
+						</Link>
+						<Link
+							to="/donate"
+							className="w-full rounded-full border-2 border-white bg-transparent px-8 py-3 text-center font-medium text-white transition-all duration-200 hover:bg-white/10 sm:w-auto cursor-pointer"
+						>
 							Ndihmo të tjerët
-						</button>
+						</Link>
 					</div>
 
 					<div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6 text-sm font-medium">
