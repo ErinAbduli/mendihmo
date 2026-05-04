@@ -21,6 +21,8 @@ type Campaign = {
 	organizer: string;
 	location?: string;
 	category: CampaignCategory;
+	/** Cover për kartën — në prod zakonisht URL nga backend / upload i organizatorit. */
+	imageUrl: string;
 	goalEuro: number;
 	raisedEuro: number;
 	donors: number;
@@ -43,6 +45,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Ndihmë urgjente për operacion",
 		organizer: "Arta K.",
 		location: "Prishtinë",
+		imageUrl:
+			"https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80",
 		category: "Mjekësi",
 		goalEuro: 5000,
 		raisedEuro: 3120,
@@ -55,6 +59,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Bursa për studime – një semestër",
 		organizer: "Luan B.",
 		location: "Tiranë",
+		imageUrl:
+			"https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
 		category: "Arsim",
 		goalEuro: 1200,
 		raisedEuro: 760,
@@ -67,6 +73,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Pako ushqimore për familje në nevojë",
 		organizer: "Qendra Komunitare",
 		location: "Shkodër",
+		imageUrl:
+			"https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80",
 		category: "Komunitet",
 		goalEuro: 2500,
 		raisedEuro: 910,
@@ -78,6 +86,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Strehë e përkohshme pas zjarrit",
 		organizer: "Driton M.",
 		location: "Pejë",
+		imageUrl:
+			"https://images.unsplash.com/photo-1544984243-ec57ea16fe25?auto=format&fit=crop&w=800&q=80",
 		category: "Fatkeqësi",
 		goalEuro: 8000,
 		raisedEuro: 2450,
@@ -89,6 +99,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Trajtim veterinar për qenushin ‘Boni’",
 		organizer: "Strehimore Lokale",
 		location: "Durrës",
+		imageUrl:
+			"https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=800&q=80",
 		category: "Kafshë",
 		goalEuro: 900,
 		raisedEuro: 540,
@@ -100,6 +112,8 @@ const CAMPAIGNS: Campaign[] = [
 		title: "Rikonstruktim i klasës së fshatit",
 		organizer: "Këshilli i Prindërve",
 		location: "Gjakovë",
+		imageUrl:
+			"https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
 		category: "Arsim",
 		goalEuro: 3500,
 		raisedEuro: 1730,
@@ -119,6 +133,35 @@ function formatEuro(amount: number) {
 function clampPercent(value: number) {
 	if (!Number.isFinite(value)) return 0;
 	return Math.max(0, Math.min(100, value));
+}
+
+function campaignCoverFallback(category: CampaignCategory, title: string) {
+	const palette: Record<CampaignCategory, { bg: string; fg: string }> = {
+		Urgjente: { bg: "#ef4444", fg: "#ffffff" },
+		"Mjekësi": { bg: "#0ea5e9", fg: "#ffffff" },
+		Arsim: { bg: "#8b5cf6", fg: "#ffffff" },
+		Komunitet: { bg: "#14b8a6", fg: "#062925" },
+		"Kafshë": { bg: "#f59e0b", fg: "#2a1700" },
+		"Fatkeqësi": { bg: "#334155", fg: "#ffffff" },
+	};
+
+	const { bg, fg } = palette[category];
+	const safeTitle = title.length > 38 ? `${title.slice(0, 38)}…` : title;
+	const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-label="${category}">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${bg}"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <rect x="40" y="330" width="720" height="130" rx="22" fill="#000" fill-opacity="0.22"/>
+  <text x="70" y="385" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="28" fill="${fg}" font-weight="700">${category}</text>
+  <text x="70" y="425" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif" font-size="22" fill="${fg}" opacity="0.95">${safeTitle}</text>
+</svg>`;
+
+	return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 const Donate = () => {
@@ -302,6 +345,19 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 	const progress = clampPercent((campaign.raisedEuro / campaign.goalEuro) * 100);
 	return (
 		<Card className="transition-shadow hover:shadow-md">
+			<img
+				src={campaign.imageUrl}
+				alt={campaign.title}
+				className="aspect-[16/10] w-full object-cover"
+				loading="lazy"
+				decoding="async"
+				referrerPolicy="no-referrer"
+				onError={(e) => {
+					const img = e.currentTarget;
+					const fallback = campaignCoverFallback(campaign.category, campaign.title);
+					if (img.src !== fallback) img.src = fallback;
+				}}
+			/>
 			<CardHeader className="gap-2">
 				<div className="flex flex-wrap items-center gap-2">
 					<Badge variant="outline">{campaign.category}</Badge>
