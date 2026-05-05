@@ -5,6 +5,7 @@ const statusCodeMap: Record<number, string> = {
 	404: "Burimi i kërkuar nuk u gjet.",
 	409: "Ky burim ekziston tashmë.",
 	422: "Të dhënat e dërguara nuk janë të vlefshme.",
+	413: "Skedarët janë shumë të mëdhenj. Provoni me imazhe më të vogla.",
 	500: "Gabim i brendshëm në server.",
 };
 

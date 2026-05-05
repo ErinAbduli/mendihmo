@@ -1,26 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
+import { isAxiosError } from "axios";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { apiClient } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-type CampaignCategory =
-	| "Urgjente"
-	| "Mjekësi"
-	| "Arsim"
-	| "Komunitet"
-	| "Kafshë"
-	| "Fatkeqësi";
 
 type Campaign = {
 	id: string;
 	title: string;
 	organizer: string;
 	location?: string;
-	category: CampaignCategory;
+	category: string;
 	/** Cover për kartën — në prod zakonisht URL nga backend / upload i organizatorit. */
 	imageUrl: string;
 	goalEuro: number;
@@ -28,9 +22,24 @@ type Campaign = {
 	donors: number;
 	createdDaysAgo: number;
 	featured?: boolean;
+	status?: "draft" | "pending" | "active" | "funded" | "failed";
 };
 
-const CATEGORIES: CampaignCategory[] = [
+type ApiCampaign = {
+	id: number;
+	title: string;
+	goalAmount: number;
+	currentAmount: number;
+	backersCount: number;
+	coverImage: string | null;
+	createdAt: string;
+	isFeatured: boolean;
+	status: "draft" | "pending" | "active" | "funded" | "failed";
+	category: { name: string } | null;
+	creator: { emri: string; mbiemri: string; email: string } | null;
+};
+
+const CATEGORIES = [
 	"Urgjente",
 	"Mjekësi",
 	"Arsim",
@@ -135,8 +144,8 @@ function clampPercent(value: number) {
 	return Math.max(0, Math.min(100, value));
 }
 
-function campaignCoverFallback(category: CampaignCategory, title: string) {
-	const palette: Record<CampaignCategory, { bg: string; fg: string }> = {
+function campaignCoverFallback(category: string, title: string) {
+	const palette: Record<string, { bg: string; fg: string }> = {
 		Urgjente: { bg: "#ef4444", fg: "#ffffff" },
 		"Mjekësi": { bg: "#0ea5e9", fg: "#ffffff" },
 		Arsim: { bg: "#8b5cf6", fg: "#ffffff" },
@@ -164,20 +173,103 @@ function campaignCoverFallback(category: CampaignCategory, title: string) {
 	return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-const Donate = () => {
-	const [query, setQuery] = useState("");
-	const [category, setCategory] = useState<CampaignCategory | "Të gjitha">(
-		"Të gjitha",
+function normalizeCampaigns(input: unknown): ApiCampaign[] {
+	const source = Array.isArray(input)
+		? input
+		: input && typeof input === "object" && "campaigns" in input
+			? (input as { campaigns: unknown }).campaigns
+			: [];
+	if (!Array.isArray(source)) return [];
+	return source.filter(
+		(item): item is ApiCampaign => Boolean(item && typeof item === "object"),
 	);
+}
+
+function mapToDonateCampaign(campaign: ApiCampaign): Campaign {
+	const createdAt = new Date(campaign.createdAt);
+	const now = Date.now();
+	const createdDaysAgo = Number.isFinite(createdAt.getTime())
+		? Math.max(0, Math.floor((now - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
+		: 0;
+	const organizerName =
+		`${campaign.creator?.emri ?? ""} ${campaign.creator?.mbiemri ?? ""}`.trim() ||
+		campaign.creator?.email ||
+		"Organizator";
+
+	return {
+		id: String(campaign.id),
+		title: campaign.title,
+		organizer: organizerName,
+		category: campaign.category?.name ?? "Të tjera",
+		imageUrl: campaign.coverImage || campaignCoverFallback(campaign.category?.name ?? "Të tjera", campaign.title),
+		goalEuro: campaign.goalAmount,
+		raisedEuro: campaign.currentAmount,
+		donors: campaign.backersCount,
+		createdDaysAgo,
+		featured: campaign.isFeatured,
+		status: campaign.status,
+	};
+}
+
+function mergeCampaignLists(primary: Campaign[], secondary: Campaign[]) {
+	const merged = [...primary];
+	const knownIds = new Set(primary.map((campaign) => campaign.id));
+	for (const campaign of secondary) {
+		if (!knownIds.has(campaign.id)) {
+			merged.push(campaign);
+		}
+	}
+	return merged;
+}
+
+const Donate = () => {
+	const [campaigns, setCampaigns] = useState<Campaign[]>(CAMPAIGNS);
+	const [loading, setLoading] = useState(true);
+	const [apiError, setApiError] = useState<string | null>(null);
+	const [query, setQuery] = useState("");
+	const [category, setCategory] = useState<string>("Të gjitha");
+
+	useEffect(() => {
+		let mounted = true;
+		(async () => {
+			setLoading(true);
+			setApiError(null);
+			try {
+				const data = await apiClient.get<unknown>("/campaigns");
+				if (!mounted) return;
+				const normalized = normalizeCampaigns(data)
+					.filter((item) => item.status !== "draft" && item.status !== "failed")
+					.map(mapToDonateCampaign);
+				setCampaigns(normalized.length ? mergeCampaignLists(normalized, CAMPAIGNS) : CAMPAIGNS);
+			} catch (error) {
+				if (!mounted) return;
+				const backendMessage = isAxiosError<{ error?: string }>(error)
+					? error.response?.data?.error ?? error.message
+					: error instanceof Error
+						? error.message
+						: "Dështoi ngarkimi i fushatave.";
+				setApiError(backendMessage);
+				setCampaigns(CAMPAIGNS);
+			} finally {
+				if (mounted) setLoading(false);
+			}
+		})();
+		return () => {
+			mounted = false;
+		};
+	}, []);
 
 	const featured = useMemo(
-		() => CAMPAIGNS.filter((c) => c.featured),
-		[],
+		() => {
+			const featuredCampaigns = campaigns.filter((c) => c.featured);
+			return featuredCampaigns.length ? featuredCampaigns : campaigns.slice(0, 2);
+		},
+		[campaigns],
 	);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		return CAMPAIGNS.filter((c) => {
+		return campaigns.filter((c) => {
 			const matchesCategory = category === "Të gjitha" || c.category === category;
 			const matchesQuery =
 				q.length === 0 ||
@@ -187,7 +279,15 @@ const Donate = () => {
 
 			return matchesCategory && matchesQuery;
 		});
-	}, [category, query]);
+	}, [campaigns, category, query]);
+
+	const dynamicCategories = useMemo(() => {
+		const categoriesFromCampaigns = Array.from(
+			new Set(campaigns.map((campaign) => campaign.category).filter(Boolean)),
+		);
+		if (categoriesFromCampaigns.length) return categoriesFromCampaigns;
+		return CATEGORIES;
+	}, [campaigns]);
 
 	return (
 		<div className="bg-background">
@@ -205,6 +305,14 @@ const Donate = () => {
 								Strukturë e stilit GoFundMe: kërko, filtro sipas kategorisë, shiko
 								progresin dhe dhuro me disa klikime.
 							</p>
+						{loading ? (
+							<p className="text-xs text-muted-foreground">Duke ngarkuar fushatat reale...</p>
+						) : null}
+						{apiError ? (
+							<p className="text-xs text-muted-foreground">
+								Po shfaqen fushatat demo (API: {apiError}).
+							</p>
+						) : null}
 
 							<div className="flex flex-col gap-3 sm:flex-row">
 								<div className="flex-1">
@@ -288,7 +396,7 @@ const Donate = () => {
 						>
 							Të gjitha
 						</CategoryChip>
-						{CATEGORIES.map((c) => (
+						{dynamicCategories.map((c) => (
 							<CategoryChip
 								key={c}
 								active={category === c}
@@ -361,6 +469,9 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 			<CardHeader className="gap-2">
 				<div className="flex flex-wrap items-center gap-2">
 					<Badge variant="outline">{campaign.category}</Badge>
+					{campaign.status === "pending" ? (
+						<Badge variant="secondary">Në shqyrtim</Badge>
+					) : null}
 					<span className="text-xs text-muted-foreground">
 						{campaign.createdDaysAgo} ditë më parë
 					</span>

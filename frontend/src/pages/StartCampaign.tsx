@@ -77,8 +77,17 @@ type StartCampaignFormInput = z.input<typeof startCampaignSchema>;
 type StartCampaignFormValues = z.infer<typeof startCampaignSchema>;
 
 const normalizeCategories = (input: unknown): ApiCategory[] => {
-	if (!Array.isArray(input)) return [];
-	return input.filter((item): item is ApiCategory => Boolean(item && typeof item === "object"));
+	const source = Array.isArray(input)
+		? input
+		: input && typeof input === "object" && "categories" in input
+			? (input as { categories: unknown }).categories
+			: [];
+
+	if (!Array.isArray(source)) return [];
+
+	return source.filter(
+		(item): item is ApiCategory => Boolean(item && typeof item === "object"),
+	);
 };
 
 const todayIsoDate = () => {
@@ -210,6 +219,7 @@ const StartCampaign = () => {
 	const [categories, setCategories] = useState<ApiCategory[]>([]);
 	const [loadingCategories, setLoadingCategories] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
+	const todayDate = todayIsoDate();
 
 	const form = useForm<StartCampaignFormInput, unknown, StartCampaignFormValues>({
 		resolver: zodResolver(startCampaignSchema),
@@ -218,12 +228,13 @@ const StartCampaign = () => {
 			description: "",
 			goalAmount: 0,
 			categoryId: 0,
-			startDate: todayIsoDate(),
+			startDate: todayDate,
 			endDate: "",
 			coverImage: "",
 			images: [],
 		},
 	});
+	const startDateValue = form.watch("startDate");
 
 	useEffect(() => {
 		let mounted = true;
@@ -236,6 +247,9 @@ const StartCampaign = () => {
 			} catch {
 				if (!mounted) return;
 				setCategories([]);
+				toast.error(
+					"Nuk u ngarkuan kategoritë. Kontrollo backend-in (`/categories`) dhe CORS.",
+				);
 			} finally {
 				if (mounted) setLoadingCategories(false);
 			}
@@ -275,7 +289,7 @@ const StartCampaign = () => {
 				description: "",
 				goalAmount: 0,
 				categoryId: 0,
-				startDate: todayIsoDate(),
+				startDate: todayDate,
 				endDate: "",
 				coverImage: "",
 				images: [],
@@ -457,6 +471,7 @@ const StartCampaign = () => {
 														value={field.value}
 														onChange={field.onChange}
 														placeholder="Zgjidh datën e mbarimit"
+														min={startDateValue || todayDate}
 													/>
 												</FormControl>
 												<FormMessage />
@@ -477,6 +492,7 @@ const StartCampaign = () => {
 														value={field.value}
 														onChange={field.onChange}
 														placeholder="Zgjidh datën e fillimit"
+														min={todayDate}
 													/>
 												</FormControl>
 												<FormMessage />
