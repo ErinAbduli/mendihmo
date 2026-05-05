@@ -56,60 +56,66 @@ const Navbar = () => {
 				<div className="flex items-center gap-2">
 					{isAuthenticated && user ? (
 						<>
-						<DropdownMenu modal={false}>
-							<DropdownMenuTrigger asChild>
-								<button
-									aria-label="Hap menune e profilit"
-									className="inline-flex cursor-pointer items-center gap-1 rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-									type="button"
+							<DropdownMenu modal={false}>
+								<DropdownMenuTrigger asChild>
+									<button
+										aria-label="Hap menune e profilit"
+										className="inline-flex cursor-pointer items-center gap-1 rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										type="button"
+									>
+										<Avatar size="default">
+											<AvatarFallback>
+												{getInitials(
+													user.name,
+													user.email,
+												)}
+											</AvatarFallback>
+										</Avatar>
+										<ChevronDown className="size-4 text-muted-foreground" />
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent
+									align="end"
+									className="w-56"
 								>
-									<Avatar size="default">
-										<AvatarFallback>
-											{getInitials(user.name, user.email)}
-										</AvatarFallback>
-									</Avatar>
-									<ChevronDown className="size-4 text-muted-foreground" />
-								</button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end" className="w-56">
-								<DropdownMenuLabel className="space-y-1">
-									<p className="font-medium text-sm">
-										{user.name}
-									</p>
-									<p className="text-muted-foreground text-xs">
-										{user.email}
-									</p>
-								</DropdownMenuLabel>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem
-									className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
-									onClick={() => navigate("/profile")}
-								>
-									<UserRound className="size-4" />
-									Profili
-								</DropdownMenuItem>
-								{isAuthenticated &&
-									(user.role === "ADMIN" ||
-										user.role === "MODERATOR") && (
-										<DropdownMenuItem
-											className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
-											onClick={() =>
-												navigate("/dashboard")
-											}
-										>
-											<LayoutDashboard className="size-4" />
-											Paneli
-										</DropdownMenuItem>
-									)}
-								<DropdownMenuItem
-									onClick={handleLogout}
-									variant="destructive"
-								>
-									<LogOut className="size-4" />
-									Dil
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
+									<DropdownMenuLabel className="space-y-1">
+										<p className="font-medium text-sm">
+											{user.name}
+										</p>
+										<p className="text-muted-foreground text-xs">
+											{user.email}
+										</p>
+									</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
+										onClick={() => navigate("/profile")}
+									>
+										<UserRound className="size-4" />
+										Profili
+									</DropdownMenuItem>
+									{isAuthenticated &&
+										(user.role === "ADMIN" ||
+											user.role === "MODERATOR") && (
+											<DropdownMenuItem
+												className="data-highlighted:bg-accent/15 data-highlighted:text-black hover:text-black data-highlighted:[&_svg]:text-black"
+												onClick={() =>
+													navigate("/dashboard")
+												}
+											>
+												<LayoutDashboard className="size-4" />
+												Paneli
+											</DropdownMenuItem>
+										)}
+									<DropdownMenuItem
+										onClick={handleLogout}
+										variant="destructive"
+									>
+										<LogOut className="size-4" />
+										Dil
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</>
 					) : (
 						<>
