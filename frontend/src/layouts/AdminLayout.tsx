@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from "react-router";
 import { Menu, Search, LogOut, UserRound, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 
 const AdminLayout = () => {
+	usePageTitle();
 	const navigate = useNavigate();
 	const [openSidebar, setOpenSidebar] = useState(false);
 	const user = useAuthStore((state) => state.user);
