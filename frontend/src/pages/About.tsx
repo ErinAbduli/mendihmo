@@ -53,7 +53,7 @@ const steps = [
 const About = () => {
 	return (
 		<div className="min-h-screen bg-background">
-			<section className="border-b border-border/60 bg-muted/20">
+			<section className="border-b border-border/60 bg-gradient-to-b from-primary/10 via-background to-background">
 				<div className="mx-auto w-full max-w-6xl px-4 py-14 md:py-20">
 					<div className="grid gap-8 md:grid-cols-[1.2fr_0.8fr] md:items-center">
 						<div className="space-y-5">

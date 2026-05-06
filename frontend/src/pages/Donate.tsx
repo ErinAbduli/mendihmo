@@ -292,7 +292,7 @@ const Donate = () => {
 
 	return (
 		<div className="bg-background">
-			<section className="border-b border-border/60">
+			<section className="border-b border-border/60 bg-gradient-to-b from-primary/10 via-background to-background">
 				<div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
 					<div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-center">
 						<div className="space-y-4">

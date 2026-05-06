@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.ts";
 import campaignRoutes from "./routes/campaign.routes.ts";
 import categoryRoutes from "./routes/category.routes.ts";
 import userRoutes from "./routes/user.routes.ts";
+import contactRoutes from "./routes/contact.routes.ts";
 import helmet from "helmet";
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", async (req: express.Request, res: express.Response) => {
 	res.send("Hello, World!");
