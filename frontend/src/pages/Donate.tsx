@@ -152,9 +152,10 @@ function campaignCoverFallback(category: string, title: string) {
 		Komunitet: { bg: "#14b8a6", fg: "#062925" },
 		"Kafshë": { bg: "#f59e0b", fg: "#2a1700" },
 		"Fatkeqësi": { bg: "#334155", fg: "#ffffff" },
+		"Të tjera": { bg: "#0f766e", fg: "#ffffff" },
 	};
 
-	const { bg, fg } = palette[category];
+	const { bg, fg } = palette[category] ?? palette["Të tjera"];
 	const safeTitle = title.length > 38 ? `${title.slice(0, 38)}…` : title;
 	const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-label="${category}">
@@ -305,14 +306,14 @@ const Donate = () => {
 								Strukturë e stilit GoFundMe: kërko, filtro sipas kategorisë, shiko
 								progresin dhe dhuro me disa klikime.
 							</p>
-						{loading ? (
-							<p className="text-xs text-muted-foreground">Duke ngarkuar fushatat reale...</p>
-						) : null}
-						{apiError ? (
-							<p className="text-xs text-muted-foreground">
-								Po shfaqen fushatat demo (API: {apiError}).
-							</p>
-						) : null}
+							{loading ? (
+								<p className="text-xs text-muted-foreground">Duke ngarkuar fushatat reale...</p>
+							) : null}
+							{apiError ? (
+								<p className="text-xs text-muted-foreground">
+									Po shfaqen fushatat demo (API: {apiError}).
+								</p>
+							) : null}
 
 							<div className="flex flex-col gap-3 sm:flex-row">
 								<div className="flex-1">
