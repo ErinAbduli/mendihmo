@@ -67,9 +67,27 @@ async function main() {
 	// CATEGORIES
 	// ----------------------
 	const categories = await Promise.all([
-		prisma.category.create({ data: { name: "Tech", slug: "tech" } }),
-		prisma.category.create({ data: { name: "Health", slug: "health" } }),
-		prisma.category.create({ data: { name: "Gaming", slug: "gaming" } }),
+		prisma.category.create({ data: { name: "Kafshe", slug: "kafshe" } }),
+		prisma.category.create({ data: { name: "Biznes", slug: "biznes" } }),
+		prisma.category.create({ data: { name: "Komunitet", slug: "komunitet" } }),
+		prisma.category.create({ data: { name: "Konkurrime", slug: "konkurrime" } }),
+		prisma.category.create({ data: { name: "Krijuese", slug: "krijuese" } }),
+		prisma.category.create({ data: { name: "Arsim", slug: "arsim" } }),
+		prisma.category.create({ data: { name: "Emergjenca", slug: "emergjenca" } }),
+		prisma.category.create({ data: { name: "Mjedis", slug: "mjedis" } }),
+		prisma.category.create({ data: { name: "Ngjarje", slug: "ngjarje" } }),
+		prisma.category.create({ data: { name: "Besim", slug: "besim" } }),
+		prisma.category.create({ data: { name: "Familje", slug: "familje" } }),
+		prisma.category.create({ data: { name: "Funerale dhe Perkujtimore", slug: "funerale-dhe-perkujtimore" } }),
+		prisma.category.create({ data: { name: "Mjekesi", slug: "mjekesi" } }),
+		prisma.category.create({ data: { name: "Fatura Mujore", slug: "fatura-mujore" } }),
+		prisma.category.create({ data: { name: "Te Sapomartuar", slug: "te-sapomartuar" } }),
+		prisma.category.create({ data: { name: "Tjeter", slug: "tjeter" } }),
+		prisma.category.create({ data: { name: "Sport", slug: "sport" } }),
+		prisma.category.create({ data: { name: "Udhetim", slug: "udhetim" } }),
+		prisma.category.create({ data: { name: "Ndihme per Ukrainen", slug: "ndihme-per-ukrainen" } }),
+		prisma.category.create({ data: { name: "Vullnetare", slug: "vullnetare" } }),
+		prisma.category.create({ data: { name: "Deshira", slug: "deshira" } }),
 	]);
 
 	// ----------------------

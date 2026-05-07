@@ -23,6 +23,15 @@ import AdminProtectedRoute from "./utils/admin-protected-route.tsx";
 
 const router = createBrowserRouter([
 	{
+		path: "/start-campaign",
+		element: (
+			<ProtectedRoute>
+				<StartCampaign />
+			</ProtectedRoute>
+		),
+		errorElement: <NotFound />,
+	},
+	{
 		path: "/",
 		element: <Layout />,
 		errorElement: <NotFound />,
@@ -42,14 +51,6 @@ const router = createBrowserRouter([
 			{
 				path: "/donate",
 				element: <Donate />,
-			},
-			{
-				path: "/start-campaign",
-				element: (
-					<ProtectedRoute>
-						<StartCampaign />
-					</ProtectedRoute>
-				),
 			},
 			{
 				path: "/about",
