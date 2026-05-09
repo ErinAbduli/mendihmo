@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { isAxiosError } from "axios";
 import { ChevronLeft, ChevronRight, Flag, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -370,7 +370,7 @@ const CampaignDetail = () => {
 	};
 	const recentDonations = campaign?.contributions.slice().sort((left, right) => {
 		return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-	}).slice(0, 4) ?? [];
+	}).slice(0, 10) ?? [];
 	const descriptionWords = campaign?.description.trim().split(/\s+/).filter(Boolean) ?? [];
 	const hasLongDescription = descriptionWords.length > 150;
 	const displayedDescription = hasLongDescription && !showFullDescription
@@ -381,19 +381,6 @@ const CampaignDetail = () => {
 		if (!campaign) return;
 
 		const shareUrl = window.location.href;
-		if (navigator.share) {
-			try {
-				await navigator.share({
-					title: campaign.title,
-					text: campaign.description,
-					url: shareUrl,
-				});
-				return;
-			} catch {
-				// fall back to clipboard
-			}
-		}
-
 		await navigator.clipboard.writeText(shareUrl);
 		toast.success("Lidhja e fushatës u kopjua.");
 	};
@@ -489,6 +476,59 @@ const CampaignDetail = () => {
 		}
 	};
 
+	const navigate = useNavigate();
+
+	const handleEdit = () => {
+		if (!campaign) return;
+		navigate(`/start-campaign?campaignId=${campaign.id}`);
+	};
+
+	const handleEnd = async () => {
+		if (!campaign) return;
+		if (!isAuthenticated) {
+			toast.error("Duhet të hyni në llogari për të përfunduar fushatën.");
+			return;
+		}
+
+		if (!window.confirm("A je i sigurt që dëshiron të përfundosh këtë fushatë? Kjo veprim do ta shënojë si të përfunduar.")) return;
+
+		try {
+			await apiClient.put(`/campaigns/${campaign.id}`, { status: "funded" });
+			toast.success("Fushata u përfundua.");
+			void fetchCampaign(true);
+		} catch (error) {
+			const backendMessage = isAxiosError<{ error?: string }>(error)
+				? error.response?.data?.error ?? error.message
+				: error instanceof Error
+					? error.message
+					: "Përfundimi i fushatës dështoi.";
+			toast.error(backendMessage);
+		}
+	};
+
+	const handleDelete = async () => {
+		if (!campaign) return;
+		if (!isAuthenticated) {
+			toast.error("Duhet të hyni në llogari për të fshirë fushatën.");
+			return;
+		}
+
+		if (!window.confirm("A je i sigurt që dëshiron të fshish këtë fushatë? Veprimi është i pakthyeshëm.")) return;
+
+		try {
+			await apiClient.delete(`/campaigns/${campaign.id}`);
+			toast.success("Fushata u fshi.");
+			navigate(`/donate`);
+		} catch (error) {
+			const backendMessage = isAxiosError<{ error?: string }>(error)
+				? error.response?.data?.error ?? error.message
+				: error instanceof Error
+					? error.message
+					: "Fshirja e fushatës dështoi.";
+			toast.error(backendMessage);
+		}
+	};
+
 	if (loading) {
 		return <DetailSkeleton />;
 	}
@@ -522,7 +562,41 @@ const CampaignDetail = () => {
 					</Button>
 				</div>
 
-				<h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">{campaign.title}</h1>
+				<div className="flex items-start justify-between">
+					<h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">{campaign.title}</h1>
+					<div className="flex items-center gap-2">
+						{(() => {
+							const isAdmin = user?.role === "ADMIN";
+							const isModerator = user?.role === "MODERATOR";
+							const isOwner = Boolean(user && campaign && user.email && campaign.creator?.email && user.email === campaign.creator.email);
+
+							if (isAdmin) {
+								return (
+									<>
+										<Button size="sm" onClick={() => handleEdit()}>Ndrysho</Button>
+										<Button size="sm" onClick={() => handleEnd()}>Mbyll</Button>
+										<Button size="sm" variant="destructive" onClick={() => handleDelete()}>Fshi</Button>
+									</>
+								);
+							}
+
+							if (isOwner) {
+								return (
+									<>
+										<Button size="sm" onClick={() => handleEdit()}>Ndrysho</Button>
+										<Button size="sm" onClick={() => handleEnd()}>Mbyll</Button>
+									</>
+								);
+							}
+
+							if (isModerator) {
+								return <Button size="sm" onClick={() => handleEnd()}>Mbyll</Button>;
+							}
+
+							return null;
+						})()}
+					</div>
+				</div>
 
 				<div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
 					<div>
@@ -687,9 +761,6 @@ const CampaignDetail = () => {
 						<div className="mt-6 h-px w-full bg-border/40" />
 
 						<div className="mt-5">
-							<Button variant="outline" onClick={() => setDonationOpen(true)} className="w-full rounded-full sm:w-auto">
-								Dhuro
-							</Button>
 							<Button variant="outline" onClick={() => setReportOpen(true)} className="mt-3 w-full rounded-full sm:w-auto">
 								<Flag className="mr-2 size-4" />
 								Raporto fushatën
