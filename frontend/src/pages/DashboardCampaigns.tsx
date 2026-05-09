@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format, parseISO } from "date-fns";
 import {
 	type ColumnDef,
 	type ColumnFiltersState,
@@ -15,7 +14,7 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { isAxiosError } from "axios";
-import { MoreVertical, Upload, X } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { apiClient } from "@/lib/api";
@@ -78,7 +77,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DatePicker } from "@/components/ui/date-picker";
+import { MediaUpload, PhotoGalleryUpload } from "@/components/ui/file-upload";
 
 type CampaignStatus = "draft" | "pending" | "active" | "funded" | "failed";
 
@@ -97,7 +96,7 @@ type ApiCampaign = {
 	currentAmount: number;
 	currency: string;
 	startDate: string;
-	endDate: string;
+	endDate: string | null;
 	status: CampaignStatus;
 	creatorId: number;
 	categoryId: number | null;
@@ -134,8 +133,7 @@ type CampaignRow = {
 	creatorName: string;
 	creatorEmail: string;
 	startDate: string;
-	endDate: string;
-	dateRange: string;
+	endDate: string | null;
 	createdAt: string;
 	isFeatured: boolean;
 	isApproved: boolean;
@@ -161,12 +159,6 @@ const campaignFormSchema = z.object({
 	}),
 	goalAmount: z.coerce.number().positive({
 		message: "Objektivi duhet të jetë më i madh se 0.",
-	}),
-	startDate: z.string().min(1, {
-		message: "Data e fillimit është e detyrueshme.",
-	}),
-	endDate: z.string().min(1, {
-		message: "Data e mbarimit është e detyrueshme.",
 	}),
 	status: z.enum(campaignStatuses),
 	categoryId: z.coerce.number().int().positive({
@@ -216,15 +208,6 @@ const formatDate = (value: string) =>
 		day: "numeric",
 	});
 
-const formatDateInputValue = (value?: string | null) => {
-	if (!value) {
-		return "";
-	}
-
-	const parsedDate = parseISO(value);
-	return Number.isNaN(parsedDate.getTime()) ? "" : format(parsedDate, "yyyy-MM-dd");
-};
-
 const parseMediaSelection = (value: string | null) => {
 	if (!value) {
 		return [];
@@ -256,141 +239,7 @@ const normalizeMediaValue = (value?: string | string[] | null) => {
 	return trimmedValue ? trimmedValue : undefined;
 };
 
-const fileToDataUrl = (file: File) =>
-	new Promise<string>((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			if (typeof reader.result === "string") {
-				resolve(reader.result);
-				return;
-			}
-
-			reject(new Error("Nuk u lexua dot skedari."));
-		};
-		reader.onerror = () => reject(reader.error ?? new Error("Nuk u lexua dot skedari."));
-		reader.readAsDataURL(file);
-	});
-
-const filesToDataUrls = async (files: FileList | null) => {
-	if (!files?.length) {
-		return [];
-	}
-
-	return Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
-};
-
 const objectiveOptions = [1000, 5000, 10000, 25000, 50000];
-
-type FileUploadFieldProps = {
-	value?: string | string[] | null;
-	onChange: (value: string | string[] | undefined) => void;
-	accept: string;
-	multiple?: boolean;
-	placeholder: string;
-	label: string;
-	description: string;
-};
-
-function FileUploadField({
-	value,
-	onChange,
-	accept,
-	multiple = false,
-	placeholder,
-	label,
-	description,
-}: FileUploadFieldProps) {
-	const inputRef = useRef<HTMLInputElement | null>(null);
-	const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
-
-	const resetInput = () => {
-		if (inputRef.current) {
-			inputRef.current.value = "";
-		}
-	};
-
-	const handleChange = async (event: ChangeEvent<HTMLInputElement>) => {
-		const uploadedFiles = await filesToDataUrls(event.currentTarget.files);
-		onChange(multiple ? uploadedFiles : uploadedFiles[0]);
-		resetInput();
-	};
-
-	return (
-		<Card className="border-dashed">
-			<CardContent className="space-y-4 p-4">
-				<div className="flex items-start justify-between gap-3">
-					<div className="space-y-1">
-						<p className="font-medium text-sm">{label}</p>
-						<p className="text-muted-foreground text-xs">{description}</p>
-					</div>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon-sm"
-						onClick={() => {
-							onChange(undefined);
-							resetInput();
-						}}
-						disabled={!selectedValues.length}
-						aria-label={`Pastro ${label.toLowerCase()}`}
-					>
-						<X className="size-4" />
-					</Button>
-				</div>
-
-				<div className="flex flex-wrap items-center gap-3">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => inputRef.current?.click()}
-					>
-						<Upload className="mr-2 size-4" />
-						{placeholder}
-					</Button>
-					<input
-						ref={inputRef}
-						type="file"
-						className="hidden"
-						accept={accept}
-						multiple={multiple}
-						onChange={handleChange}
-					/>
-					<p className="text-muted-foreground text-xs">
-						{selectedValues.length
-							? multiple
-								? `${selectedValues.length} skedarë të zgjedhur`
-								: "Skedari u zgjodh"
-							: "Nuk ka skedar të zgjedhur."}
-					</p>
-				</div>
-
-				{selectedValues.length ? (
-					<div className={multiple ? "grid gap-3 sm:grid-cols-2" : "space-y-3"}>
-						{selectedValues.map((item, index) => (
-							<div key={`${label}-${index}`} className="overflow-hidden rounded-lg border bg-muted/30">
-								{accept.includes("image") ? (
-									<img
-										src={item}
-										alt={`${label} ${index + 1}`}
-										className="h-40 w-full object-cover"
-									/>
-								) : accept.includes("video") ? (
-									<video controls className="h-48 w-full bg-black object-cover">
-										<source src={item} />
-										Your browser does not support the video tag.
-									</video>
-								) : null}
-								<div className="border-t px-3 py-2 text-muted-foreground text-xs">
-									{accept.includes("video") ? "Video e zgjedhur" : "Media e zgjedhur"}
-								</div>
-							</div>
-						))}
-					</div>
-				) : null}
-			</CardContent>
-		</Card>
-	);
-}
 
 const normalizeCampaignRows = (input: unknown): CampaignRow[] => {
 	const source = Array.isArray(input)
@@ -410,7 +259,6 @@ const normalizeCampaignRows = (input: unknown): CampaignRow[] => {
 				campaign.creator?.email ||
 				"Përdorues i panjohur";
 			const categoryName = campaign.category?.name ?? "Pa kategori";
-			const dateRange = `${formatDate(campaign.startDate)} - ${formatDate(campaign.endDate)}`;
 
 			return {
 				id: typeof campaign.id === "number" ? campaign.id : index + 1,
@@ -426,8 +274,7 @@ const normalizeCampaignRows = (input: unknown): CampaignRow[] => {
 				creatorName,
 				creatorEmail: campaign.creator?.email ?? "",
 				startDate: campaign.startDate,
-				endDate: campaign.endDate,
-				dateRange,
+				endDate: campaign.endDate ?? null,
 				createdAt: campaign.createdAt,
 				isFeatured: Boolean(campaign.isFeatured),
 				isApproved: Boolean(campaign.isApproved),
@@ -449,11 +296,15 @@ const normalizeCategories = (input: unknown): ApiCategory[] => {
 const buildColumns = ({
 	onEdit,
 	onDelete,
+	onEnd,
 	deletingCampaignId,
+	endingCampaignId,
 }: {
 	onEdit: (campaign: CampaignRow) => void;
 	onDelete: (campaign: CampaignRow) => void;
+	onEnd: (campaign: CampaignRow) => void;
 	deletingCampaignId: number | null;
+	endingCampaignId: number | null;
 }): ColumnDef<CampaignRow>[] => [
 	{
 		accessorKey: "title",
@@ -517,14 +368,18 @@ const buildColumns = ({
 		),
 	},
 	{
-		accessorKey: "dateRange",
-		header: "Afati",
+		accessorKey: "createdAt",
+		header: "Krijuar",
 		cell: ({ row }) => (
 			<div className="space-y-1 text-sm">
-				<p>{row.original.dateRange}</p>
-				<p className="text-muted-foreground text-xs">
-					Krijuar më {formatDate(row.original.createdAt)}
-				</p>
+				<p>{formatDate(row.original.createdAt)}</p>
+				{row.original.endDate ? (
+					<p className="text-muted-foreground text-xs">
+						Mbyllur {formatDate(row.original.endDate)}
+					</p>
+				) : (
+					<p className="text-muted-foreground text-xs">Aktive</p>
+				)}
 			</div>
 		),
 	},
@@ -540,22 +395,28 @@ const buildColumns = ({
 							size="icon-sm"
 							aria-label="Hap menunë e fushatës"
 						>
-								<MoreVertical className="size-4" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => onEdit(row.original)}>
-								Ndrysho fushatën
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								variant="destructive"
-								disabled={deletingCampaignId === row.original.id}
-								onClick={() => onDelete(row.original)}
-							>
-								Largo
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
+							<MoreVertical className="size-4" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem onClick={() => onEdit(row.original)}>
+							Ndrysho fushatën
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							disabled={endingCampaignId === row.original.id || row.original.status === "failed"}
+							onClick={() => onEnd(row.original)}
+						>
+							Mbyll fushatën
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							variant="destructive"
+							disabled={deletingCampaignId === row.original.id}
+							onClick={() => onDelete(row.original)}
+						>
+							Largo
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
 		),
 	},
@@ -565,8 +426,6 @@ const emptyFormDefaults: CampaignFormInput = {
 	title: "",
 	description: "",
 	goalAmount: 0,
-	startDate: "",
-	endDate: "",
 	status: "draft",
 	categoryId: 0,
 	coverImage: "",
@@ -580,11 +439,14 @@ const DashboardCampaigns = () => {
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [endCampaignDialogOpen, setEndCampaignDialogOpen] = useState(false);
 	const [editingCampaign, setEditingCampaign] = useState<CampaignRow | null>(null);
 	const [campaignToDelete, setCampaignToDelete] = useState<CampaignRow | null>(null);
+	const [campaignToEnd, setCampaignToEnd] = useState<CampaignRow | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [deletingCampaignId, setDeletingCampaignId] = useState<number | null>(null);
+	const [endingCampaignId, setEndingCampaignId] = useState<number | null>(null);
 	const [isCreateGoalCustom, setIsCreateGoalCustom] = useState(false);
 	const [isEditGoalCustom, setIsEditGoalCustom] = useState(false);
 	const [sorting, setSorting] = useState<SortingState>([]);
@@ -651,13 +513,11 @@ const DashboardCampaigns = () => {
 				buildColumns({
 					onEdit: (campaign) => {
 						setEditingCampaign(campaign);
-							setIsEditGoalCustom(!objectiveOptions.includes(campaign.goalAmount));
+						setIsEditGoalCustom(!objectiveOptions.includes(campaign.goalAmount));
 						editForm.reset({
 							title: campaign.title,
 							description: campaign.description,
 							goalAmount: campaign.goalAmount,
-							startDate: formatDateInputValue(campaign.startDate),
-							endDate: formatDateInputValue(campaign.endDate),
 							status: campaign.status,
 							categoryId: campaign.categoryId ?? "",
 							coverImage: campaign.coverImage ?? "",
@@ -670,9 +530,14 @@ const DashboardCampaigns = () => {
 						setCampaignToDelete(campaign);
 						setDeleteDialogOpen(true);
 					},
+					onEnd: (campaign) => {
+						setCampaignToEnd(campaign);
+						setEndCampaignDialogOpen(true);
+					},
 					deletingCampaignId,
+					endingCampaignId,
 				}),
-			[deletingCampaignId, editForm],
+			[deletingCampaignId, endingCampaignId, editForm],
 		),
 		state: {
 			sorting,
@@ -702,8 +567,6 @@ const DashboardCampaigns = () => {
 		title: values.title,
 		description: values.description,
 		goalAmount: values.goalAmount,
-		startDate: values.startDate,
-		endDate: values.endDate,
 		status: values.status,
 		categoryId: Number(values.categoryId),
 		coverImage: normalizeMediaValue(values.coverImage),
@@ -795,6 +658,34 @@ const DashboardCampaigns = () => {
 			);
 		} finally {
 			setDeletingCampaignId(null);
+		}
+	}
+
+	async function handleEndCampaign() {
+		if (!campaignToEnd) {
+			return;
+		}
+
+		setEndingCampaignId(campaignToEnd.id);
+		try {
+			await apiClient.put<ApiCampaign, { endDate: string; status: CampaignStatus }>(
+				`/campaigns/${campaignToEnd.id}`,
+				{ endDate: new Date().toISOString(), status: "failed" },
+			);
+			toast.success("Fushata u mbyll me sukses.");
+			setEndCampaignDialogOpen(false);
+			setCampaignToEnd(null);
+			await fetchCampaigns();
+		} catch (endError) {
+			const backendMessage = isAxiosError<{ error?: string }>(endError)
+				? endError.response?.data?.error
+				: null;
+
+			toast.error(
+				localizeErrorMessage(backendMessage) ?? "Mbyllja e fushatës dështoi.",
+			);
+		} finally {
+			setEndingCampaignId(null);
 		}
 	}
 
@@ -1010,116 +901,39 @@ const DashboardCampaigns = () => {
 
 									<div className="space-y-4 rounded-xl border bg-muted/20 p-5">
 										<div>
-											<h3 className="font-semibold text-sm">Afatet</h3>
-											<p className="text-muted-foreground text-xs">
-												Përcakto datat e fillimit dhe mbarimit të fushatës.
-											</p>
-										</div>
-										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-											<FormField
-												control={createForm.control}
-												name="startDate"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Data e fillimit</FormLabel>
-														<FormControl>
-															<DatePicker
-																value={field.value}
-																onChange={field.onChange}
-																placeholder="Zgjidh datën e fillimit"
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-
-											<FormField
-												control={createForm.control}
-												name="endDate"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Data e mbarimit</FormLabel>
-														<FormControl>
-															<DatePicker
-																value={field.value}
-																onChange={field.onChange}
-																placeholder="Zgjidh datën e mbarimit"
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
-									</div>
-
-									<div className="space-y-4 rounded-xl border bg-muted/20 p-5">
-										<div>
 											<h3 className="font-semibold text-sm">Media</h3>
 											<p className="text-muted-foreground text-xs">
 												Ngarko cover, video dhe imazhe shtesë për prezantim më të mirë.
 											</p>
 										</div>
-										<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-											<FormField
-												control={createForm.control}
-												name="coverImage"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Cover image</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={field.value}
-																onChange={field.onChange}
-																accept="image/*"
-																placeholder="Zgjidh një imazh"
-																label="Cover image"
-																description="Ngarkoni skedarin e imazhit për kopertinën e fushatës."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
 
-											<FormField
-												control={createForm.control}
-												name="videoUrl"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Video URL</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={field.value}
-																onChange={field.onChange}
-																accept="video/*"
-																placeholder="Zgjidh një video"
-																label="Video URL"
-																description="Ngarkoni një skedar video që do të ruhet në Cloudinary."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
+										<FormField
+											control={createForm.control}
+											name="coverImage"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Cover (foto ose video)</FormLabel>
+													<FormControl>
+														<MediaUpload
+															value={field.value || undefined}
+															onChange={(val) => field.onChange(val ?? "")}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 
 										<FormField
 											control={createForm.control}
 											name="images"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Imazhe të tjera</FormLabel>
+													<FormLabel>Foto shtesë</FormLabel>
 													<FormControl>
-														<FileUploadField
-															value={field.value}
+														<PhotoGalleryUpload
+															value={Array.isArray(field.value) ? field.value : field.value ? [field.value as string] : []}
 															onChange={field.onChange}
-															accept="image/*"
-															multiple
-															placeholder="Zgjidh imazhe"
-															label="Imazhe të tjera"
-															description="Ngarkoni një ose më shumë imazhe shtesë të fushatës."
 														/>
 													</FormControl>
 													<FormMessage />
@@ -1336,116 +1150,39 @@ const DashboardCampaigns = () => {
 
 									<div className="space-y-4 rounded-xl border bg-muted/20 p-5">
 										<div>
-											<h3 className="font-semibold text-sm">Afatet</h3>
-											<p className="text-muted-foreground text-xs">
-												Rishiko kohëzgjatjen dhe datat e fushatës.
-											</p>
-										</div>
-										<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-									<FormField
-										control={editForm.control}
-										name="startDate"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Data e fillimit</FormLabel>
-												<FormControl>
-													<DatePicker
-														value={field.value}
-														onChange={field.onChange}
-														placeholder="Zgjidh datën e fillimit"
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-
-									<FormField
-										control={editForm.control}
-										name="endDate"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Data e mbarimit</FormLabel>
-												<FormControl>
-													<DatePicker
-														value={field.value}
-														onChange={field.onChange}
-														placeholder="Zgjidh datën e mbarimit"
-													/>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-										</div>
-									</div>
-
-									<div className="space-y-4 rounded-xl border bg-muted/20 p-5">
-										<div>
 											<h3 className="font-semibold text-sm">Media</h3>
 											<p className="text-muted-foreground text-xs">
 												Përditëso materialet vizuale që shoqërojnë fushatën.
 											</p>
 										</div>
-										<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-											<FormField
-												control={editForm.control}
-												name="coverImage"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Cover image</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={field.value}
-																onChange={field.onChange}
-																accept="image/*"
-																placeholder="Zgjidh një imazh"
-																label="Cover image"
-																description="Ngarkoni skedarin e imazhit për kopertinën e fushatës."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
 
-											<FormField
-												control={editForm.control}
-												name="videoUrl"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel>Video URL</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={field.value}
-																onChange={field.onChange}
-																accept="video/*"
-																placeholder="Zgjidh një video"
-																label="Video URL"
-																description="Ngarkoni një skedar video që do të ruhet në Cloudinary."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</div>
+										<FormField
+											control={editForm.control}
+											name="coverImage"
+											render={({ field }) => (
+												<FormItem>
+													<FormLabel>Cover (foto ose video)</FormLabel>
+													<FormControl>
+														<MediaUpload
+															value={field.value || undefined}
+															onChange={(val) => field.onChange(val ?? "")}
+														/>
+													</FormControl>
+													<FormMessage />
+												</FormItem>
+											)}
+										/>
 
 										<FormField
 											control={editForm.control}
 											name="images"
 											render={({ field }) => (
 												<FormItem>
-													<FormLabel>Imazhe të tjera</FormLabel>
+													<FormLabel>Foto shtesë</FormLabel>
 													<FormControl>
-														<FileUploadField
-															value={field.value}
+														<PhotoGalleryUpload
+															value={Array.isArray(field.value) ? field.value : field.value ? [field.value as string] : []}
 															onChange={field.onChange}
-															accept="image/*"
-															multiple
-															placeholder="Zgjidh imazhe"
-															label="Imazhe të tjera"
-															description="Ngarkoni një ose më shumë imazhe shtesë të fushatës."
 														/>
 													</FormControl>
 													<FormMessage />
@@ -1500,6 +1237,41 @@ const DashboardCampaigns = () => {
 								disabled={Boolean(deletingCampaignId)}
 							>
 								{deletingCampaignId ? "Duke fshirë..." : "Fshi fushatën"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+
+				<AlertDialog
+					open={endCampaignDialogOpen}
+					onOpenChange={(open) => {
+						setEndCampaignDialogOpen(open);
+						if (!open && !endingCampaignId) {
+							setCampaignToEnd(null);
+						}
+					}}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Mbyll fushatën?</AlertDialogTitle>
+							<AlertDialogDescription>
+								{campaignToEnd
+									? `Fushata "${campaignToEnd.title}" do të mbyllet tani dhe data e mbarimit do të regjistrohet automatikisht.`
+									: "Fushata do të mbyllet dhe data e mbarimit do të regjistrohet."}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={Boolean(endingCampaignId)}>
+								Anulo
+							</AlertDialogCancel>
+							<AlertDialogAction
+								onClick={(event) => {
+									event.preventDefault();
+									void handleEndCampaign();
+								}}
+								disabled={Boolean(endingCampaignId)}
+							>
+								{endingCampaignId ? "Duke mbyllur..." : "Mbyll fushatën"}
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

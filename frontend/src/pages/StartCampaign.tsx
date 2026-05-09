@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,13 +6,12 @@ import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { z } from "zod";
 import { motion, useAnimation, useInView } from "motion/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
 import { apiClient } from "@/lib/api";
 import { localizeErrorMessage } from "@/lib/error-utils";
 import logo from "@/assets/logo3.svg";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
 	Form,
 	FormControl,
@@ -22,6 +21,14 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { MediaUpload, PhotoGalleryUpload } from "@/components/ui/file-upload";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
 import {
 	Select,
 	SelectContent,
@@ -29,7 +36,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
+
+const DRAFT_KEY = "start_campaign_draft";
+const DRAFT_TTL = 2 * 60 * 60 * 1000;
 
 type ApiCategory = {
 	id: number;
@@ -39,48 +48,29 @@ type ApiCategory = {
 
 const COUNTRIES = [
 	"Shqipëria",
+	"Kosova",
+	"Maqedonia e Veriut",
+	"Mali i Zi",
+	"Serbia",
+	"Greqia",
+	"Italia",
+	"Gjermania",
+	"Zvicra",
 	"Austria",
 	"Belgjika",
-	"Bullgaria",
-	"Kroacia",
-	"Qipro",
-	"Republika Çeke",
-	"Danimarka",
-	"Estonia",
-	"Finlanda",
 	"Franca",
-	"Gjermania",
-	"Greqia",
-	"Hungaria",
-	"Irlanda",
-	"Islanda",
-	"Italia",
-	"Letonia",
-	"Lituania",
-	"Luksemburgu",
-	"Malta",
-	"Marok",
-	"Maqedonia",
-	"Moldavia",
-	"Monako",
-	"Mali i Zi",
-	"Norvegjia",
-	"Holanda",
-	"Polonia",
-	"Portugalia",
-	"Rumania",
-	"Rusia",
-	"San Marino",
-	"Serbia",
-	"Sllovakia",
-	"Sllovenia",
-	"Spanja",
-	"Suedia",
-	"Zvicra",
-	"Turqia",
-	"Ukraina",
 	"Mbretëria e Bashkuar",
-	"Bosnja dhe Hercegovina",
+	"Shtetet e Bashkuara",
+	"Kanada",
+	"Turqia",
+	"Suedia",
+	"Norvegjia",
+	"Danimarka",
+	"Finlanda",
+	"Holanda",
+	"Luksemburgu",
+	"Sllovenia",
+	"Kroacia",
 ];
 
 const startCampaignSchema = z
@@ -103,30 +93,9 @@ const startCampaignSchema = z
 		categoryId: z.coerce.number().int().positive({
 			message: "Zgjidhni një kategori.",
 		}),
-		startDate: z.string().min(1, {
-			message: "Data e fillimit është e detyrueshme.",
-		}),
-		endDate: z.string().min(1, {
-			message: "Data e mbarimit është e detyrueshme.",
-		}),
 		coverImage: z.union([z.string(), z.literal("")]).optional(),
 		images: z.union([z.array(z.string()), z.literal("")]).optional(),
-	})
-	.refine(
-		(values) => {
-			const start = new Date(values.startDate);
-			const end = new Date(values.endDate);
-			return (
-				Number.isFinite(start.getTime()) &&
-				Number.isFinite(end.getTime()) &&
-				end.getTime() >= start.getTime()
-			);
-		},
-		{
-			message: "Data e mbarimit duhet të jetë pas datës së fillimit.",
-			path: ["endDate"],
-		},
-	);
+	});
 
 type StartCampaignFormInput = z.input<typeof startCampaignSchema>;
 type StartCampaignFormValues = z.infer<typeof startCampaignSchema>;
@@ -143,14 +112,6 @@ const normalizeCategories = (input: unknown): ApiCategory[] => {
 	return source.filter((item): item is ApiCategory =>
 		Boolean(item && typeof item === "object"),
 	);
-};
-
-const todayIsoDate = () => {
-	const d = new Date();
-	const yyyy = d.getFullYear();
-	const mm = String(d.getMonth() + 1).padStart(2, "0");
-	const dd = String(d.getDate()).padStart(2, "0");
-	return `${yyyy}-${mm}-${dd}`;
 };
 
 // Animated Box Reveal Component
@@ -223,131 +184,20 @@ const Ripple = ({
 	);
 };
 
-const fileToDataUrl = (file: File) =>
-	new Promise<string>((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onload = () => {
-			if (typeof reader.result === "string") resolve(reader.result);
-			else reject(new Error("Nuk u lexua dot skedari."));
-		};
-		reader.onerror = () =>
-			reject(reader.error ?? new Error("Nuk u lexua dot skedari."));
-		reader.readAsDataURL(file);
-	});
 
-const filesToDataUrls = async (files: FileList | null) => {
-	if (!files?.length) return [];
-	return Promise.all(Array.from(files).map((file) => fileToDataUrl(file)));
-};
-
-function FileUploadField({
-	value,
-	onChange,
-	accept,
-	multiple = false,
-	placeholder,
-	label,
-	description,
-}: {
-	value?: string | string[] | null;
-	onChange: (value: string | string[] | undefined) => void;
-	accept: string;
-	multiple?: boolean;
-	placeholder: string;
-	label: string;
-	description: string;
-}) {
-	const inputRef = useRef<HTMLInputElement | null>(null);
-	const selectedValues = Array.isArray(value) ? value : value ? [value] : [];
-
-	const resetInput = () => {
-		if (inputRef.current) inputRef.current.value = "";
-	};
-
-	const handleChange = async (event: ChangeEvent<HTMLInputElement>) => {
-		const uploadedFiles = await filesToDataUrls(event.currentTarget.files);
-		onChange(multiple ? uploadedFiles : uploadedFiles[0]);
-		resetInput();
-	};
-
-	return (
-		<Card className="border-dashed">
-			<CardContent className="space-y-4 p-4">
-				<div className="flex items-start justify-between gap-3">
-					<div className="space-y-1">
-						<p className="text-sm font-medium">{label}</p>
-						<p className="text-xs text-muted-foreground">
-							{description}
-						</p>
-					</div>
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon-sm"
-						onClick={() => {
-							onChange(undefined);
-							resetInput();
-						}}
-						disabled={!selectedValues.length}
-						aria-label={`Pastro ${label.toLowerCase()}`}
-					>
-						×
-					</Button>
-				</div>
-
-				<div className="flex flex-wrap items-center gap-3">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={() => inputRef.current?.click()}
-					>
-						{placeholder}
-					</Button>
-					<input
-						ref={inputRef}
-						type="file"
-						className="hidden"
-						accept={accept}
-						multiple={multiple}
-						onChange={handleChange}
-					/>
-					<p className="text-xs text-muted-foreground">
-						{selectedValues.length
-							? multiple
-								? `${selectedValues.length} skedarë të zgjedhur`
-								: "Skedari u zgjodh"
-							: "Nuk ka skedar të zgjedhur."}
-					</p>
-				</div>
-
-				{selectedValues.length ? (
-					<div
-						className={
-							multiple ? "grid gap-3 sm:grid-cols-2" : "space-y-3"
-						}
-					>
-						{selectedValues.map((item, index) => (
-							<div
-								key={`${label}-${index}`}
-								className="overflow-hidden rounded-lg border bg-muted/30"
-							>
-								{accept.includes("image") ? (
-									<img
-										src={item}
-										alt={`${label} ${index + 1}`}
-										className="h-40 w-full object-cover"
-									/>
-								) : null}
-								<div className="border-t px-3 py-2 text-xs text-muted-foreground">
-									Media e zgjedhur
-								</div>
-							</div>
-						))}
-					</div>
-				) : null}
-			</CardContent>
-		</Card>
-	);
+function writeDraft(data: unknown, step: number) {
+	const payload = JSON.stringify({ data, savedAt: Date.now(), step });
+	try {
+		localStorage.setItem(DRAFT_KEY, payload);
+	} catch {
+		// Quota exceeded — retry without the (potentially large) coverImage
+		try {
+			const safe = { ...(data as Record<string, unknown>), coverImage: "" };
+			localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: safe, savedAt: Date.now(), step }));
+		} catch {
+			/* storage unavailable, skip silently */
+		}
+	}
 }
 
 const StartCampaign = () => {
@@ -356,7 +206,10 @@ const StartCampaign = () => {
 	const [loadingCategories, setLoadingCategories] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const [currentStep, setCurrentStep] = useState(1);
-	const todayDate = todayIsoDate();
+
+	type EditField = "location" | "category" | "goalAmount" | "coverImage" | "title" | "description";
+	const [editField, setEditField] = useState<EditField | null>(null);
+	const [tempEdit, setTempEdit] = useState<Record<string, unknown>>({});
 
 	const form = useForm<
 		StartCampaignFormInput,
@@ -371,13 +224,52 @@ const StartCampaign = () => {
 			description: "",
 			goalAmount: 0,
 			categoryId: 0,
-			startDate: todayDate,
-			endDate: "",
 			coverImage: "",
 			images: [],
 		},
 	});
-	const startDateValue = form.watch("startDate");
+
+	// Restore draft from localStorage on mount
+	useEffect(() => {
+		try {
+			const raw = localStorage.getItem(DRAFT_KEY);
+			if (!raw) return;
+			const { data, savedAt, step } = JSON.parse(raw) as {
+				data: Partial<StartCampaignFormInput>;
+				savedAt: number;
+				step: number;
+			};
+			if (Date.now() - savedAt < DRAFT_TTL) {
+				form.reset({ ...form.getValues(), ...data });
+				if (step && step >= 1 && step <= 5) setCurrentStep(step);
+			} else {
+				localStorage.removeItem(DRAFT_KEY);
+			}
+		} catch {
+			localStorage.removeItem(DRAFT_KEY);
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	// Persist to localStorage on field change
+	useEffect(() => {
+		const subscription = form.watch((data) => {
+			writeDraft(data, currentStep);
+		});
+		return () => subscription.unsubscribe();
+	}, [form, currentStep]);
+
+	// Persist to localStorage when step changes (even without field edits)
+	useEffect(() => {
+		const raw = localStorage.getItem(DRAFT_KEY);
+		if (!raw) return;
+		try {
+			const parsed = JSON.parse(raw);
+			writeDraft(parsed.data, currentStep);
+		} catch {
+			/* ignore */
+		}
+	}, [currentStep]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -411,6 +303,41 @@ const StartCampaign = () => {
 		[categories],
 	);
 
+	// Reactive values for review step
+	const watchedValues = form.watch();
+
+	const openEdit = useCallback(
+		(field: EditField) => {
+			const v = form.getValues();
+			if (field === "location") setTempEdit({ country: v.country, postcode: v.postcode });
+			else if (field === "category") setTempEdit({ categoryId: String(v.categoryId) });
+			else if (field === "goalAmount") setTempEdit({ goalAmount: v.goalAmount });
+			else if (field === "coverImage") setTempEdit({ coverImage: v.coverImage ?? "" });
+			else if (field === "title") setTempEdit({ title: v.title });
+			else if (field === "description") setTempEdit({ description: v.description });
+			setEditField(field);
+		},
+		[form],
+	);
+
+	const saveEdit = useCallback(() => {
+		if (editField === "location") {
+			form.setValue("country", tempEdit.country as string);
+			form.setValue("postcode", tempEdit.postcode as string);
+		} else if (editField === "category") {
+			form.setValue("categoryId", Number(tempEdit.categoryId));
+		} else if (editField === "goalAmount") {
+			form.setValue("goalAmount", Number(tempEdit.goalAmount));
+		} else if (editField === "coverImage") {
+			form.setValue("coverImage", tempEdit.coverImage as string);
+		} else if (editField === "title") {
+			form.setValue("title", tempEdit.title as string);
+		} else if (editField === "description") {
+			form.setValue("description", tempEdit.description as string);
+		}
+		setEditField(null);
+	}, [editField, tempEdit, form]);
+
 	const onSubmit = async (values: StartCampaignFormValues) => {
 		setSubmitting(true);
 		try {
@@ -431,6 +358,7 @@ const StartCampaign = () => {
 				payload,
 			);
 
+			localStorage.removeItem(DRAFT_KEY);
 			toast.success(
 				"Kauza u dërgua për shqyrtim. Do të publikohet pasi të aprovohet.",
 			);
@@ -441,8 +369,6 @@ const StartCampaign = () => {
 				description: "",
 				goalAmount: 0,
 				categoryId: 0,
-				startDate: todayDate,
-				endDate: "",
 				coverImage: "",
 				images: [],
 			});
@@ -465,15 +391,16 @@ const StartCampaign = () => {
 
 	const handleNextStep = async () => {
 		if (currentStep === 1) {
-			const isValid = await form.trigger(["country", "postcode"]);
-			if (isValid) {
-				setCurrentStep(2);
-			}
+			const isValid = await form.trigger(["country", "postcode", "categoryId"]);
+			if (isValid) setCurrentStep(2);
 		} else if (currentStep === 2) {
-			const isValid = await form.trigger(["categoryId"]);
-			if (isValid) {
-				setCurrentStep(3);
-			}
+			const isValid = await form.trigger(["goalAmount"]);
+			if (isValid) setCurrentStep(3);
+		} else if (currentStep === 3) {
+			setCurrentStep(4);
+		} else if (currentStep === 4) {
+			const isValid = await form.trigger(["title", "description"]);
+			if (isValid) setCurrentStep(5);
 		}
 	};
 
@@ -502,7 +429,7 @@ const StartCampaign = () => {
 						{currentStep === 1 && (
 							<>
 								{/* Left side - Text */}
-								<div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
+								<div className="relative hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
 									<Ripple
 										mainCircleSize={100}
 										mainCircleOpacity={0.1}
@@ -529,47 +456,24 @@ const StartCampaign = () => {
 										<BoxReveal duration={0.5} delay={0.1}>
 											<div>
 												<Badge className="mb-4 text-sm">
-													Hapi 1 i 3
+													Hapi 1 i 5
 												</Badge>
 												<h2 className="font-heading text-3xl font-bold">
-													Ku jeni bazuar?
+													Le të fillojmë udhëtimin tuaj
 												</h2>
 											</div>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.2}>
 											<p className="text-lg text-muted-foreground">
-												Zgjidhni vendin ku jeni bazuar
-												dhe kodin postal të zonës tuaj.
-												Kjo informacion ndihmon ne te
-												fokusohemi ne komunitetin tuaj.
+												Tregoni ku do të shkojnë fondet
+												dhe zgjidhni kategorinë që
+												përfaqëson më mirë kauzën tuaj.
 											</p>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.3}>
-											<div className="space-y-3 rounded-lg bg-primary/10 p-4">
-												<p className="text-sm font-semibold text-foreground">
-													Pse na duhet?
-												</p>
-												<ul className="space-y-2 text-sm text-muted-foreground">
-													<li>
-														✓ Për të kufizuar
-														donacionet në vendin
-														tuaj
-													</li>
-													<li>
-														✓ Për ta lidhur kauzën
-														me komunitetin lokal
-													</li>
-													<li>
-														✓ Për të ndjekur burimet
-														dhe efektin
-													</li>
-												</ul>
-											</div>
-										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="h-px bg-border" />
 										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.5}>
+										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="space-y-2">
 												<p className="text-xs font-medium text-muted-foreground">
 													PËRPARIM
@@ -578,7 +482,7 @@ const StartCampaign = () => {
 													<motion.div
 														initial={{ width: 0 }}
 														animate={{
-															width: "33%",
+															width: "20%",
 														}}
 														transition={{
 															duration: 0.8,
@@ -593,75 +497,137 @@ const StartCampaign = () => {
 								</div>
 
 								{/* Right side - Form inputs */}
-								<div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-8 lg:px-12">
-									<div className="w-full max-w-sm space-y-6">
+								<div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-8 lg:px-12">
+									<div className="w-full max-w-lg space-y-6">
 										<BoxReveal duration={0.5} delay={0}>
-											<FormField
-												control={form.control}
-												name="country"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel className="text-base">
-															Vendi *
-														</FormLabel>
-														<FormControl>
-															<Select
-																onValueChange={
-																	field.onChange
-																}
-																value={
-																	field.value ||
-																	""
-																}
-															>
-																<SelectTrigger className="h-11">
-																	<SelectValue placeholder="Zgjidhni vendin tuaj" />
-																</SelectTrigger>
-																<SelectContent className="max-h-72">
-																	{COUNTRIES.map(
-																		(
-																			country,
-																		) => (
-																			<SelectItem
-																				key={
-																					country
-																				}
-																				value={
-																					country
-																				}
-																			>
-																				{
-																					country
-																				}
-																			</SelectItem>
-																		),
-																	)}
-																</SelectContent>
-															</Select>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
+											<div className="space-y-2">
+												<p className="text-base font-medium">
+													Ku do të shkojnë fondet? *
+												</p>
+												<div className="grid grid-cols-2 gap-3">
+													<FormField
+														control={form.control}
+														name="country"
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel className="text-base font-semibold">
+																	Vendi
+																</FormLabel>
+																<FormControl>
+																	<Select
+																		onValueChange={
+																			field.onChange
+																		}
+																		value={
+																			field.value ||
+																			""
+																		}
+																	>
+																		<SelectTrigger className="h-14 text-base px-4">
+																			<SelectValue placeholder="Zgjidhni" />
+																		</SelectTrigger>
+																		<SelectContent className="max-h-72">
+																			{COUNTRIES.map(
+																				(
+																					country,
+																				) => (
+																					<SelectItem
+																						key={
+																							country
+																						}
+																						value={
+																							country
+																						}
+																					>
+																						{
+																							country
+																						}
+																					</SelectItem>
+																				),
+																			)}
+																		</SelectContent>
+																	</Select>
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+													<FormField
+														control={form.control}
+														name="postcode"
+														render={({ field }) => (
+															<FormItem>
+																<FormLabel className="text-base font-semibold">
+																	Kodi postal
+																</FormLabel>
+																<FormControl>
+																	<Input
+																		placeholder="P.sh. 1000"
+																		className="h-14 text-base"
+																		{...field}
+																	/>
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+												</div>
+											</div>
 										</BoxReveal>
 
-										<BoxReveal duration={0.5} delay={0.1}>
+										<BoxReveal duration={0.5} delay={0.15}>
 											<FormField
 												control={form.control}
-												name="postcode"
+												name="categoryId"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel className="text-base">
-															Kodi postal *
-														</FormLabel>
-														<FormControl>
-															<Input
-																placeholder="P.sh. 1000"
-																className="h-11"
-																{...field}
-															/>
-														</FormControl>
+														<p className="text-base font-medium">
+															Cila kategori e përfaqëson më mirë kauzën tuaj? *
+														</p>
 														<FormMessage />
+														{loadingCategories ? (
+															<p className="text-sm text-muted-foreground">
+																Duke ngarkuar…
+															</p>
+														) : categoryOptions.length ? (
+															<div className="flex flex-wrap gap-2 pt-1">
+																{categoryOptions.map(
+																	(cat) => {
+																		const isSelected =
+																			String(
+																				field.value,
+																			) ===
+																			cat.value;
+																		return (
+																			<button
+																				key={
+																					cat.value
+																				}
+																				type="button"
+																				onClick={() =>
+																					field.onChange(
+																						cat.value,
+																					)
+																				}
+																				className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+																					isSelected
+																						? "border-primary bg-primary text-primary-foreground"
+																						: "border-border bg-background text-foreground hover:border-primary/60 hover:bg-primary/5"
+																				}`}
+																			>
+																				{
+																					cat.label
+																				}
+																			</button>
+																		);
+																	},
+																)}
+															</div>
+														) : (
+															<p className="text-sm text-muted-foreground">
+																Nuk ka kategori të disponueshme.
+															</p>
+														)}
 													</FormItem>
 												)}
 											/>
@@ -694,181 +660,71 @@ const StartCampaign = () => {
 							</>
 						)}
 
+						{/* Step 2: Amount */}
 						{currentStep === 2 && (
 							<>
-								{/* Left side - Text */}
-								<div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
-									<Ripple
-										mainCircleSize={100}
-										mainCircleOpacity={0.1}
-										numCircles={3}
-									/>
+								<div className="relative hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
+									<Ripple mainCircleSize={100} mainCircleOpacity={0.1} numCircles={3} />
 									<div className="relative max-w-md space-y-6 z-10">
-										{" "}
 										<BoxReveal duration={0.5} delay={0}>
-											<button
-												type="button"
-												onClick={() =>
-													navigate("/donate")
-												}
-												className="-mb-3 p-0 transition-opacity hover:opacity-70"
-												aria-label="Kthehu në faqen kryesore"
-											>
-												<img
-													src={logo}
-													alt="Logo"
-													className="h-48 w-48 object-contain"
-												/>
+											<button type="button" onClick={() => navigate("/donate")} className="-mb-3 p-0 transition-opacity hover:opacity-70" aria-label="Kthehu në faqen kryesore">
+												<img src={logo} alt="Logo" className="w-48 object-contain" />
 											</button>
-										</BoxReveal>{" "}
+										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.1}>
 											<div>
-												<Badge className="mb-4 text-sm">
-													Hapi 2 i 3
-												</Badge>
-												<h2 className="font-heading text-3xl font-bold">
-													Kategoria e kauzës
-												</h2>
+												<Badge className="mb-4 text-sm">Hapi 2 i 5</Badge>
+												<h2 className="font-heading text-3xl font-bold">Sa është objektivi juaj?</h2>
 											</div>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.2}>
 											<p className="text-lg text-muted-foreground">
-												Zgjidhni kategorinë që më mirë
-												përshkruan kauzën tuaj. Kjo i
-												ndihmon donatorët të gjejnë
-												kauzat që i interesohen.
+												Vendosni shumën që dëshironi të mblidhni dhe periudhën kohore të fushatës suaj.
 											</p>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.3}>
-											<div className="space-y-3 rounded-lg bg-primary/10 p-4">
-												<p className="text-sm font-semibold text-foreground">
-													Kategoritë e disponueshme
-												</p>
-												<p className="text-sm text-muted-foreground">
-													Zgjedhja e kategorisë sipas
-													përdorimit të fondeve
-													ndihmon donatorët të gjejnë
-													kauzat që i interesohen më
-													shumë.
-												</p>
-											</div>
-										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="h-px bg-border" />
 										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.5}>
+										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="space-y-2">
-												<p className="text-xs font-medium text-muted-foreground">
-													PËRPARIM
-												</p>
+												<p className="text-xs font-medium text-muted-foreground">PËRPARIM</p>
 												<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-													<motion.div
-														initial={{ width: 0 }}
-														animate={{
-															width: "66%",
-														}}
-														transition={{
-															duration: 0.8,
-															ease: "easeOut",
-														}}
-														className="h-full bg-primary"
-													/>
+													<motion.div initial={{ width: 0 }} animate={{ width: "40%" }} transition={{ duration: 0.8, ease: "easeOut" }} className="h-full bg-primary" />
 												</div>
 											</div>
 										</BoxReveal>
 									</div>
 								</div>
-
-								{/* Right side - Form inputs */}
-								<div className="flex flex-1 items-center justify-center px-6 py-12 sm:px-8 lg:px-12">
-									<div className="w-full max-w-sm space-y-6">
+								<div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-8 lg:px-12">
+									<div className="w-full max-w-lg space-y-6">
 										<BoxReveal duration={0.5} delay={0}>
 											<FormField
 												control={form.control}
-												name="categoryId"
+												name="goalAmount"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel className="text-base">
-															Kategoria *
-														</FormLabel>
+														<FormLabel className="text-base font-semibold">Objektivi (EUR) *</FormLabel>
 														<FormControl>
-															<Select
-																onValueChange={
-																	field.onChange
-																}
-																value={String(
-																	field.value ||
-																		"",
-																)}
-																disabled={
-																	loadingCategories
-																}
-															>
-																<SelectTrigger className="h-11">
-																	<SelectValue
-																		placeholder={
-																			loadingCategories
-																				? "Duke ngarkuar…"
-																				: "Zgjidhni kategorinë"
-																		}
-																	/>
-																</SelectTrigger>
-																<SelectContent className="max-h-72">
-																	{categoryOptions.length ? (
-																		categoryOptions.map(
-																			(
-																				category,
-																			) => (
-																				<SelectItem
-																					key={
-																						category.value
-																					}
-																					value={
-																						category.value
-																					}
-																				>
-																					{
-																						category.label
-																					}
-																				</SelectItem>
-																			),
-																		)
-																	) : (
-																		<SelectItem
-																			value="0"
-																			disabled
-																		>
-																			Nuk
-																			ka
-																			kategori
-																		</SelectItem>
-																	)}
-																</SelectContent>
-															</Select>
+															<Input
+																type="number"
+																min="1"
+																step="1"
+																placeholder="P.sh. 5000"
+																className="h-14 text-base"
+																{...field}
+																value={String(field.value || "")}
+															/>
 														</FormControl>
 														<FormMessage />
 													</FormItem>
 												)}
 											/>
 										</BoxReveal>
-
 										<BoxReveal duration={0.5} delay={0.1}>
 											<div className="flex flex-wrap gap-3 pt-4">
-												<Button
-													type="button"
-													variant="outline"
-													className="flex-1"
-													onClick={handlePrevStep}
-												>
-													Mbrapa
-												</Button>
-												<Button
-													type="button"
-													onClick={handleNextStep}
-													className="flex-1"
-												>
-													Vazhdo{" "}
-													<ChevronRight className="ml-2 h-4 w-4" />
+												<Button type="button" variant="outline" className="flex-1" onClick={handlePrevStep}>Mbrapa</Button>
+												<Button type="button" onClick={handleNextStep} className="flex-1">
+													Vazhdo <ChevronRight className="ml-2 h-4 w-4" />
 												</Button>
 											</div>
 										</BoxReveal>
@@ -877,170 +733,138 @@ const StartCampaign = () => {
 							</>
 						)}
 
+						{/* Step 3: Cover photo or video */}
 						{currentStep === 3 && (
 							<>
-								{/* Left side - Text */}
-								<div className="relative hidden flex-1 items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
-									<Ripple
-										mainCircleSize={100}
-										mainCircleOpacity={0.1}
-										numCircles={3}
-									/>
+								<div className="relative hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
+									<Ripple mainCircleSize={100} mainCircleOpacity={0.1} numCircles={3} />
 									<div className="relative max-w-md space-y-6 z-10">
-										{" "}
 										<BoxReveal duration={0.5} delay={0}>
-											<button
-												type="button"
-												onClick={() =>
-													navigate("/donate")
-												}
-												className="-mb-3 p-0 transition-opacity hover:opacity-70"
-												aria-label="Kthehu në faqen kryesore"
-											>
-												<img
-													src={logo}
-													alt="Logo"
-													className="h-48 w-48 object-contain"
-												/>
+											<button type="button" onClick={() => navigate("/donate")} className="-mb-3 p-0 transition-opacity hover:opacity-70" aria-label="Kthehu në faqen kryesore">
+												<img src={logo} alt="Logo" className="w-48 object-contain" />
 											</button>
-										</BoxReveal>{" "}
+										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.1}>
 											<div>
-												<Badge className="mb-4 text-sm">
-													Hapi 3 i 3
-												</Badge>
-												<h2 className="font-heading text-3xl font-bold">
-													Detajet e kauzës
-												</h2>
+												<Badge className="mb-4 text-sm">Hapi 3 i 5</Badge>
+												<h2 className="font-heading text-3xl font-bold">Shto një foto ose video</h2>
 											</div>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.2}>
 											<p className="text-lg text-muted-foreground">
-												Plotëso informacionin në lidhje
-												me kauzën tuaj. Përshkrimi i
-												mirë dhe fotot ndihmon te beni
-												më bindese kauzën tuaj.
+												Një foto ose video e mirë e cover rrit ndjeshëm shanset e suksesit të fushatës suaj.
 											</p>
 										</BoxReveal>
 										<BoxReveal duration={0.5} delay={0.3}>
-											<div className="space-y-3 rounded-lg bg-primary/10 p-4">
-												<p className="text-sm font-semibold text-foreground">
-													Këshillat për sukses
-												</p>
-												<ul className="space-y-2 text-sm text-muted-foreground">
-													<li>
-														✓ Titulli i qartë dhe i
-														shkurtër
-													</li>
-													<li>
-														✓ Përshkrim i detajuar
-														me qëllim
-													</li>
-													<li>
-														✓ Foto cover e qartë dhe
-														bindese
-													</li>
-													<li>
-														✓ Afat i arsyeshëm
-														shpenzimet
-													</li>
-												</ul>
-											</div>
-										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="h-px bg-border" />
 										</BoxReveal>
-										<BoxReveal duration={0.5} delay={0.5}>
+										<BoxReveal duration={0.5} delay={0.4}>
 											<div className="space-y-2">
-												<p className="text-xs font-medium text-muted-foreground">
-													PËRPARIM
-												</p>
+												<p className="text-xs font-medium text-muted-foreground">PËRPARIM</p>
 												<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-													<motion.div
-														initial={{ width: 0 }}
-														animate={{
-															width: "100%",
-														}}
-														transition={{
-															duration: 0.8,
-															ease: "easeOut",
-														}}
-														className="h-full bg-primary"
-													/>
+													<motion.div initial={{ width: 0 }} animate={{ width: "60%" }} transition={{ duration: 0.8, ease: "easeOut" }} className="h-full bg-primary" />
 												</div>
 											</div>
 										</BoxReveal>
 									</div>
 								</div>
+								<div className="flex flex-1 flex-col items-center justify-center px-6 py-12 sm:px-8 lg:px-12">
+									<div className="w-full max-w-lg space-y-6">
+										<BoxReveal duration={0.5} delay={0}>
+											<FormField
+												control={form.control}
+												name="coverImage"
+												render={({ field }) => (
+													<FormItem>
+														<FormLabel className="text-base font-semibold">Foto ose video cover (opsionale)</FormLabel>
+														<FormControl>
+															<MediaUpload
+																value={field.value || undefined}
+																onChange={field.onChange}
+															/>
+														</FormControl>
+														<FormMessage />
+													</FormItem>
+												)}
+											/>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.1}>
+											<div className="flex flex-wrap gap-3 pt-4">
+												<Button type="button" variant="outline" className="flex-1" onClick={handlePrevStep}>Mbrapa</Button>
+												<Button type="button" onClick={handleNextStep} className="flex-1">
+													Vazhdo <ChevronRight className="ml-2 h-4 w-4" />
+												</Button>
+											</div>
+										</BoxReveal>
+									</div>
+								</div>
+							</>
+						)}
 
-								{/* Right side - Form inputs */}
-								<div className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-12 sm:px-8 lg:px-12">
-									<div className="w-full max-w-sm space-y-6">
+						{/* Step 4: Title and description */}
+						{currentStep === 4 && (
+							<>
+								<div className="relative hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
+									<Ripple mainCircleSize={100} mainCircleOpacity={0.1} numCircles={3} />
+									<div className="relative max-w-md space-y-6 z-10">
+										<BoxReveal duration={0.5} delay={0}>
+											<button type="button" onClick={() => navigate("/donate")} className="-mb-3 p-0 transition-opacity hover:opacity-70" aria-label="Kthehu në faqen kryesore">
+												<img src={logo} alt="Logo" className="w-48 object-contain" />
+											</button>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.1}>
+											<div>
+												<Badge className="mb-4 text-sm">Hapi 4 i 5</Badge>
+												<h2 className="font-heading text-3xl font-bold">Tregoni historinë tuaj</h2>
+											</div>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.2}>
+											<p className="text-lg text-muted-foreground">
+												Një titull i qartë dhe një përshkrim i sinqertë i japin jetë kauzës suaj.
+											</p>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.3}>
+											<div className="h-px bg-border" />
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.4}>
+											<div className="space-y-2">
+												<p className="text-xs font-medium text-muted-foreground">PËRPARIM</p>
+												<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+													<motion.div initial={{ width: 0 }} animate={{ width: "80%" }} transition={{ duration: 0.8, ease: "easeOut" }} className="h-full bg-primary" />
+												</div>
+											</div>
+										</BoxReveal>
+									</div>
+								</div>
+								<div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-12 sm:px-8 lg:px-12">
+									<div className="w-full max-w-lg space-y-6">
 										<BoxReveal duration={0.5} delay={0}>
 											<FormField
 												control={form.control}
 												name="title"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel className="text-base">
-															Titulli *
-														</FormLabel>
+														<FormLabel className="text-base font-semibold">Titulli *</FormLabel>
 														<FormControl>
-															<Input
-																placeholder="P.sh. Ndihmë për trajtim mjekësor"
-																className="h-11"
-																{...field}
-															/>
+															<Input placeholder="P.sh. Ndihmë për trajtim mjekësor" className="h-14 text-base" {...field} />
 														</FormControl>
 														<FormMessage />
 													</FormItem>
 												)}
 											/>
 										</BoxReveal>
-
-										<BoxReveal duration={0.5} delay={0.05}>
-											<FormField
-												control={form.control}
-												name="goalAmount"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel className="text-base">
-															Objektivi (EUR) *
-														</FormLabel>
-														<FormControl>
-															<Input
-																type="number"
-																min="1"
-																step="1"
-																placeholder="P.sh. 5000"
-																className="h-11"
-																{...field}
-																value={String(
-																	field.value ||
-																		"",
-																)}
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</BoxReveal>
-
 										<BoxReveal duration={0.5} delay={0.1}>
 											<FormField
 												control={form.control}
 												name="description"
 												render={({ field }) => (
 													<FormItem>
-														<FormLabel className="text-base">
-															Përshkrimi *
-														</FormLabel>
+														<FormLabel className="text-base font-semibold">Përshkrimi *</FormLabel>
 														<FormControl>
 															<textarea
 																{...field}
-																rows={4}
-																className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+																rows={6}
+																className="flex min-h-36 w-full rounded-md border border-input bg-background px-4 py-3 text-base shadow-xs outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 																placeholder="Shpjego situatën, kujt i shkon ndihma dhe si do të përdoren fondet…"
 															/>
 														</FormControl>
@@ -1049,169 +873,162 @@ const StartCampaign = () => {
 												)}
 											/>
 										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.2}>
+											<div className="flex flex-wrap gap-3 border-t pt-6">
+												<Button type="button" variant="outline" className="flex-1" onClick={handlePrevStep}>Mbrapa</Button>
+												<Button type="button" onClick={handleNextStep} className="flex-1">
+													Vazhdo <ChevronRight className="ml-2 h-4 w-4" />
+												</Button>
+											</div>
+										</BoxReveal>
+									</div>
+								</div>
+							</>
+						)}
+						{/* Step 5: Review */}
+						{currentStep === 5 && (
+							<>
+								<div className="relative hidden flex-1 flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-background to-background px-8 py-12 lg:flex">
+									<Ripple mainCircleSize={100} mainCircleOpacity={0.1} numCircles={3} />
+									<div className="relative max-w-md space-y-6 z-10">
+										<BoxReveal duration={0.5} delay={0}>
+											<button type="button" onClick={() => navigate("/donate")} className="-mb-3 p-0 transition-opacity hover:opacity-70" aria-label="Kthehu në faqen kryesore">
+												<img src={logo} alt="Logo" className="w-48 object-contain" />
+											</button>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.1}>
+											<div>
+												<Badge className="mb-4 text-sm">Hapi 5 i 5</Badge>
+												<h2 className="font-heading text-3xl font-bold">Gati për dërgim?</h2>
+											</div>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.2}>
+											<p className="text-lg text-muted-foreground">
+												Rishiko të gjitha të dhënat para se të dërgosh kauzën. Mund të kthehesh prapa për të bërë ndryshime.
+											</p>
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.3}>
+											<div className="h-px bg-border" />
+										</BoxReveal>
+										<BoxReveal duration={0.5} delay={0.4}>
+											<div className="space-y-2">
+												<p className="text-xs font-medium text-muted-foreground">PËRPARIM</p>
+												<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+													<motion.div initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 0.8, ease: "easeOut" }} className="h-full bg-primary" />
+												</div>
+											</div>
+										</BoxReveal>
+									</div>
+								</div>
+								<div className="flex flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-12 sm:px-8 lg:px-12">
+									<div className="w-full max-w-lg space-y-4">
+										<BoxReveal duration={0.5} delay={0}>
+											<div className="rounded-xl border border-border bg-muted/20 divide-y divide-border overflow-hidden">
 
-										<BoxReveal duration={0.5} delay={0.15}>
-											<div className="grid gap-3 sm:grid-cols-2">
-												<FormField
-													control={form.control}
-													name="startDate"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel className="text-sm">
-																Data fillim *
-															</FormLabel>
-															<FormControl>
-																<DatePicker
-																	value={
-																		field.value
-																	}
-																	onChange={
-																		field.onChange
-																	}
-																	placeholder="Zgjidhni"
-																	min={
-																		todayDate
-																	}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
+												{/* Location */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-0.5 min-w-0">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vendndodhja</p>
+														<p className="text-base font-medium truncate">{watchedValues.country || "—"} {watchedValues.postcode ? `— ${watchedValues.postcode}` : ""}</p>
+													</div>
+													<button type="button" onClick={() => openEdit("location")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
 
-												<FormField
-													control={form.control}
-													name="endDate"
-													render={({ field }) => (
-														<FormItem>
-															<FormLabel className="text-sm">
-																Data mbarimit *
-															</FormLabel>
-															<FormControl>
-																<DatePicker
-																	value={
-																		field.value
-																	}
-																	onChange={
-																		field.onChange
-																	}
-																	placeholder="Zgjidhni"
-																	min={
-																		startDateValue ||
-																		todayDate
-																	}
-																/>
-															</FormControl>
-															<FormMessage />
-														</FormItem>
-													)}
-												/>
+												{/* Category */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-0.5 min-w-0">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Kategoria</p>
+														<p className="text-base font-medium">{categoryOptions.find(c => c.value === String(watchedValues.categoryId))?.label ?? "—"}</p>
+													</div>
+													<button type="button" onClick={() => openEdit("category")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
+
+												{/* Amount */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-0.5 min-w-0">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Objektivi</p>
+														<p className="text-base font-medium">
+															{watchedValues.goalAmount ? `€${Number(watchedValues.goalAmount).toLocaleString("sq-AL")}` : "—"}
+														</p>
+													</div>
+													<button type="button" onClick={() => openEdit("goalAmount")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
+
+												{/* Cover */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-2 min-w-0 flex-1">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cover</p>
+														{watchedValues.coverImage ? (
+															watchedValues.coverImage.startsWith("data:video") ? (
+																<video src={watchedValues.coverImage} className="max-h-36 w-full rounded-lg object-cover" />
+															) : (
+																<img src={watchedValues.coverImage} alt="Cover" className="max-h-36 w-full rounded-lg object-cover" />
+															)
+														) : (
+															<p className="text-sm text-muted-foreground">Nuk u ngarkua cover.</p>
+														)}
+													</div>
+													<button type="button" onClick={() => openEdit("coverImage")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
+
+												{/* Title */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-0.5 min-w-0">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Titulli</p>
+														<p className="text-base font-medium truncate">{watchedValues.title || "—"}</p>
+													</div>
+													<button type="button" onClick={() => openEdit("title")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
+
+												{/* Description */}
+												<div className="flex items-start justify-between gap-3 p-4">
+													<div className="space-y-0.5 min-w-0 flex-1">
+														<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Përshkrimi</p>
+														<p className="text-sm text-foreground leading-relaxed line-clamp-3 whitespace-pre-wrap">{watchedValues.description || "—"}</p>
+													</div>
+													<button type="button" onClick={() => openEdit("description")} className="shrink-0 flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+														<Pencil className="h-3 w-3" /> Ndrysho
+													</button>
+												</div>
+
+												{/* Extra photos */}
+												<div className="p-4 space-y-3">
+													<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Foto shtesë</p>
+													<FormField
+														control={form.control}
+														name="images"
+														render={({ field }) => (
+															<FormItem>
+																<FormControl>
+																	<PhotoGalleryUpload
+																		value={Array.isArray(field.value) ? field.value as string[] : []}
+																		onChange={field.onChange}
+																	/>
+																</FormControl>
+																<FormMessage />
+															</FormItem>
+														)}
+													/>
+												</div>
+
 											</div>
 										</BoxReveal>
 
-										<BoxReveal duration={0.5} delay={0.2}>
-											<FormField
-												control={form.control}
-												name="coverImage"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel className="text-base">
-															Foto cover
-															(opsionale)
-														</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={
-																	field.value
-																}
-																onChange={
-																	field.onChange
-																}
-																accept="image/*"
-																placeholder="Ngarko foto"
-																label="Cover"
-																description="Zgjidh një foto që përfaqëson kauzën."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</BoxReveal>
-
-										<BoxReveal duration={0.5} delay={0.25}>
-											<FormField
-												control={form.control}
-												name="images"
-												render={({ field }) => (
-													<FormItem>
-														<FormLabel className="text-base">
-															Foto të tjera
-															(opsionale)
-														</FormLabel>
-														<FormControl>
-															<FileUploadField
-																value={
-																	field.value
-																}
-																onChange={
-																	field.onChange
-																}
-																accept="image/*"
-																multiple
-																placeholder="Ngarko foto"
-																label="Imazhe"
-																description="Maksimum 8 foto."
-															/>
-														</FormControl>
-														<FormMessage />
-													</FormItem>
-												)}
-											/>
-										</BoxReveal>
-
-										<BoxReveal duration={0.5} delay={0.3}>
-											<div className="flex flex-wrap gap-3 border-t pt-6">
-												<Button
-													type="button"
-													variant="outline"
-													className="flex-1"
-													onClick={handlePrevStep}
-													disabled={submitting}
-												>
-													Mbrapa
-												</Button>
-												<Button
-													type="button"
-													variant="outline"
-													className="flex-1"
-													onClick={() =>
-														form.reset({
-															country: "",
-															postcode: "",
-															title: "",
-															description: "",
-															goalAmount: 0,
-															categoryId: 0,
-															startDate:
-																todayDate,
-															endDate: "",
-															coverImage: "",
-															images: [],
-														})
-													}
-													disabled={submitting}
-												>
-													Pastro
-												</Button>
-												<Button
-													type="submit"
-													className="flex-1"
-													disabled={submitting}
-												>
-													{submitting
-														? "Duke dërguar…"
-														: "Dërgo"}
+										<BoxReveal duration={0.5} delay={0.1}>
+											<div className="flex flex-wrap gap-3 pt-2">
+												<Button type="button" variant="outline" className="flex-1" onClick={handlePrevStep} disabled={submitting}>Mbrapa</Button>
+												<Button type="submit" className="flex-1" disabled={submitting}>
+													{submitting ? "Duke dërguar…" : "Dërgo kauzën"}
 												</Button>
 											</div>
 										</BoxReveal>
@@ -1222,6 +1039,123 @@ const StartCampaign = () => {
 					</motion.div>
 				</form>
 			</Form>
+
+			{/* Edit dialogs */}
+			<Dialog open={editField !== null} onOpenChange={(open) => { if (!open) setEditField(null); }}>
+				<DialogContent className="sm:max-w-md">
+					<DialogHeader>
+						<DialogTitle>
+							{editField === "location" && "Ndrysho vendndodhjen"}
+							{editField === "category" && "Ndrysho kategorinë"}
+							{editField === "goalAmount" && "Ndrysho objektivin"}
+							{editField === "coverImage" && "Ndrysho cover-in"}
+							{editField === "title" && "Ndrysho titullin"}
+							{editField === "description" && "Ndrysho përshkrimin"}
+						</DialogTitle>
+					</DialogHeader>
+
+					<div className="space-y-4 py-2">
+						{editField === "location" && (
+							<div className="grid grid-cols-2 gap-3">
+								<div className="space-y-1.5">
+									<label className="text-sm font-medium">Vendi</label>
+									<Select
+										value={tempEdit.country as string || ""}
+										onValueChange={(v) => setTempEdit((p) => ({ ...p, country: v }))}
+									>
+										<SelectTrigger className="h-11">
+											<SelectValue placeholder="Zgjidhni" />
+										</SelectTrigger>
+										<SelectContent className="max-h-72">
+											{COUNTRIES.map((c) => (
+												<SelectItem key={c} value={c}>{c}</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-1.5">
+									<label className="text-sm font-medium">Kodi postal</label>
+									<Input
+										className="h-11"
+										placeholder="P.sh. 1000"
+										value={tempEdit.postcode as string || ""}
+										onChange={(e) => setTempEdit((p) => ({ ...p, postcode: e.target.value }))}
+									/>
+								</div>
+							</div>
+						)}
+
+						{editField === "category" && (
+							<div className="flex flex-wrap gap-2">
+								{categoryOptions.map((cat) => {
+									const selected = String(tempEdit.categoryId) === cat.value;
+									return (
+										<button
+											key={cat.value}
+											type="button"
+											onClick={() => setTempEdit((p) => ({ ...p, categoryId: cat.value }))}
+											className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:border-primary/60 hover:bg-primary/5"}`}
+										>
+											{cat.label}
+										</button>
+									);
+								})}
+							</div>
+						)}
+
+						{editField === "goalAmount" && (
+							<div className="space-y-1.5">
+								<label className="text-sm font-medium">Shuma (EUR)</label>
+								<Input
+									type="number"
+									min="1"
+									className="h-11"
+									placeholder="P.sh. 5000"
+									value={String(tempEdit.goalAmount || "")}
+									onChange={(e) => setTempEdit((p) => ({ ...p, goalAmount: e.target.value }))}
+								/>
+							</div>
+						)}
+
+						{editField === "coverImage" && (
+							<MediaUpload
+								value={tempEdit.coverImage as string || undefined}
+								onChange={(v) => setTempEdit((p) => ({ ...p, coverImage: v ?? "" }))}
+							/>
+						)}
+
+						{editField === "title" && (
+							<div className="space-y-1.5">
+								<label className="text-sm font-medium">Titulli</label>
+								<Input
+									className="h-11"
+									placeholder="P.sh. Ndihmë për trajtim mjekësor"
+									value={tempEdit.title as string || ""}
+									onChange={(e) => setTempEdit((p) => ({ ...p, title: e.target.value }))}
+								/>
+							</div>
+						)}
+
+						{editField === "description" && (
+							<div className="space-y-1.5">
+								<label className="text-sm font-medium">Përshkrimi</label>
+								<textarea
+									rows={5}
+									className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+									placeholder="Shpjego situatën…"
+									value={tempEdit.description as string || ""}
+									onChange={(e) => setTempEdit((p) => ({ ...p, description: e.target.value }))}
+								/>
+							</div>
+						)}
+					</div>
+
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={() => setEditField(null)}>Anulo</Button>
+						<Button type="button" onClick={saveEdit}>Ruaj</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 };

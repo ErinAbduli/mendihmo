@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE `campaign` ADD COLUMN `country` VARCHAR(191) NULL,
+    ADD COLUMN `postcode` VARCHAR(191) NULL,
+    MODIFY `startDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    MODIFY `endDate` DATETIME(3) NULL,
+    MODIFY `coverImage` TEXT NULL,
+    MODIFY `images` LONGTEXT NULL;

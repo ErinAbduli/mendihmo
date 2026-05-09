@@ -16,6 +16,8 @@ const campaignSelect = {
 	status: true,
 	creatorId: true,
 	categoryId: true,
+	country: true,
+	postcode: true,
 	coverImage: true,
 	images: true,
 	videoUrl: true,
@@ -98,10 +100,12 @@ type CampaignInput = {
 	goalAmount: number;
 	currentAmount?: number;
 	currency?: string;
-	startDate: string | Date;
-	endDate: string | Date;
+	startDate?: string | Date;
+	endDate?: string | Date;
 	status?: CampaignStatus;
 	categoryId?: number | null;
+	country?: string;
+	postcode?: string;
 	coverImage?: string | null | undefined;
 	images?: string | string[] | null | undefined;
 	videoUrl?: string | null | undefined;
@@ -131,6 +135,10 @@ function normalizeImages(images: string | string[] | null | undefined) {
 
 function isCloudinaryUrl(value: string) {
 	return value.includes("res.cloudinary.com");
+}
+
+function isVideoDataUrl(value: string) {
+	return value.startsWith("data:video");
 }
 
 async function uploadMedia(
@@ -240,7 +248,10 @@ async function generateUniqueCampaignSlug(baseSlug: string, excludeId?: number) 
 	return `${baseSlug}-${nextIndex}`;
 }
 
-function normalizeDate(date: string | Date) {
+function normalizeDate(date: string | Date | undefined, fallback?: Date): Date {
+	if (date === undefined) {
+		return fallback ?? new Date();
+	}
 	const normalizedDate = date instanceof Date ? date : new Date(date);
 	if (Number.isNaN(normalizedDate.getTime())) {
 		throw new Error("Invalid campaign date");
@@ -280,6 +291,12 @@ function normalizeCampaignData(campaignData: CampaignInput | CampaignUpdateInput
 	}
 	if (campaignData.categoryId !== undefined) {
 		data.categoryId = campaignData.categoryId;
+	}
+	if (campaignData.country !== undefined) {
+		data.country = campaignData.country;
+	}
+	if (campaignData.postcode !== undefined) {
+		data.postcode = campaignData.postcode;
 	}
 	if (campaignData.coverImage !== undefined) {
 		data.coverImage = campaignData.coverImage;
@@ -339,7 +356,12 @@ export const campaignService = {
 			}
 		}
 
-		if (normalizeDate(campaignData.endDate) < normalizeDate(campaignData.startDate)) {
+		const startDate = normalizeDate(campaignData.startDate);
+		const endDate = campaignData.endDate
+			? normalizeDate(campaignData.endDate)
+			: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+		if (endDate < startDate) {
 			throw new Error("Campaign end date must be after the start date");
 		}
 
@@ -347,7 +369,11 @@ export const campaignService = {
 			campaignData.coverImage !== undefined
 				? campaignData.coverImage === null
 					? Promise.resolve(null)
-					: uploadMedia(campaignData.coverImage, "image", "campaigns/cover-images")
+					: uploadMedia(
+						campaignData.coverImage,
+						isVideoDataUrl(campaignData.coverImage) ? "video" : "image",
+						"campaigns/cover-images",
+					)
 				: Promise.resolve(undefined),
 			campaignData.images !== undefined
 				? uploadCampaignImages(campaignData.images)
@@ -362,6 +388,8 @@ export const campaignService = {
 		const data = normalizeCampaignData({
 			...campaignData,
 			slug,
+			startDate,
+			endDate,
 			coverImage,
 			images,
 			videoUrl,
@@ -426,11 +454,16 @@ export const campaignService = {
 			throw new Error("Campaign end date must be after the start date");
 		}
 
+
 		const [coverImage, images, videoUrl] = await Promise.all([
 			campaignData.coverImage !== undefined
 				? campaignData.coverImage === null
 					? Promise.resolve(null)
-					: uploadMedia(campaignData.coverImage, "image", "campaigns/cover-images")
+					: uploadMedia(
+						campaignData.coverImage,
+						isVideoDataUrl(campaignData.coverImage) ? "video" : "image",
+						"campaigns/cover-images",
+					)
 				: Promise.resolve(undefined),
 			campaignData.images !== undefined
 				? uploadCampaignImages(campaignData.images)

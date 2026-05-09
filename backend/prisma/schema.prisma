@@ -111,16 +111,19 @@ model Campaign {
   currentAmount   Float    @default(0)
   currency        String   @default("EUR")
 
-  startDate       DateTime
-  endDate         DateTime
+  startDate       DateTime  @default(now())
+  endDate         DateTime?
 
   status          CampaignStatus @default(draft)
 
   creatorId       Int
   categoryId      Int?
 
-  coverImage      String?
-  images          String?
+  country         String?
+  postcode        String?
+
+  coverImage      String?  @db.Text
+  images          String?  @db.LongText
   videoUrl        String?
 
   backersCount    Int      @default(0)
