@@ -292,7 +292,7 @@ const Donate = () => {
 
 	return (
 		<div className="bg-background">
-			<section className="border-b border-border/60 bg-gradient-to-b from-primary/10 via-background to-background">
+			<section className="border-b border-border/60 bg-linear-to-b from-primary/10 via-background to-background">
 				<div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
 					<div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-center">
 						<div className="space-y-4">
@@ -457,7 +457,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 			<img
 				src={campaign.imageUrl}
 				alt={campaign.title}
-				className="aspect-[16/10] w-full object-cover"
+				className="aspect-16/10 w-full object-cover"
 				loading="lazy"
 				decoding="async"
 				referrerPolicy="no-referrer"
@@ -512,7 +512,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 
 			<CardFooter className="border-t border-border/60">
 				<Button className="w-full" asChild>
-					<Link to="/donate">Dhuro tani</Link>
+					<Link to={`/donate/${campaign.id}`}>Dhuro tani</Link>
 				</Button>
 			</CardFooter>
 		</Card>

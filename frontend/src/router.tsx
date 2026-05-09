@@ -4,6 +4,7 @@ import AdminLayout from "./layouts/AdminLayout.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Home from "./pages/Home.tsx";
 import Donate from "./pages/Donate.tsx";
+import CampaignDetail from "./pages/CampaignDetail.tsx";
 import StartCampaign from "./pages/StartCampaign.tsx";
 import About from "./pages/About.tsx";
 import Contact from "./pages/Contact.tsx";
@@ -51,6 +52,10 @@ const router = createBrowserRouter([
 			{
 				path: "/donate",
 				element: <Donate />,
+			},
+			{
+				path: "/donate/:id",
+				element: <CampaignDetail />,
 			},
 			{
 				path: "/about",

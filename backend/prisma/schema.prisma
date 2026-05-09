@@ -224,6 +224,7 @@ model Report {
   targetId      Int
 
   reason        String
+  message       String?  @db.Text
   status        String   @default("pending")
 
   createdAt     DateTime @default(now())
@@ -236,6 +237,7 @@ model Transaction {
 
   userId         Int
   campaignId     Int
+  stripeSessionId String?  @unique
 
   amount         Float
   currency       String   @default("EUR")

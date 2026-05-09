@@ -7,6 +7,8 @@ import campaignRoutes from "./routes/campaign.routes.ts";
 import categoryRoutes from "./routes/category.routes.ts";
 import userRoutes from "./routes/user.routes.ts";
 import contactRoutes from "./routes/contact.routes.ts";
+import reportRoutes from "./routes/report.routes.ts";
+import { checkoutController } from "./controllers/checkout.controller.ts";
 import helmet from "helmet";
 
 dotenv.config();
@@ -21,6 +23,11 @@ app.use(
 	}),
 );
 app.use(cookieParser());
+app.post(
+	"/api/stripe/webhook",
+	express.raw({ type: "application/json" }),
+	checkoutController.handleStripeWebhook,
+);
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
@@ -29,6 +36,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/reports", reportRoutes);
 
 app.get("/", async (req: express.Request, res: express.Response) => {
 	res.send("Hello, World!");

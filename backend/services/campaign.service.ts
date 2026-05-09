@@ -78,6 +78,14 @@ const campaignSelect = {
 			amount: true,
 			paymentStatus: true,
 			createdAt: true,
+			user: {
+				select: {
+					id: true,
+					emri: true,
+					mbiemri: true,
+					email: true,
+				},
+			},
 		},
 	},
 	transactions: {

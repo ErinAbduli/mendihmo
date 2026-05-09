@@ -23,6 +23,11 @@ export function usePageTitle() {
 	const location = useLocation();
 
 	useEffect(() => {
+		if (location.pathname.startsWith("/donate/")) {
+			document.title = "Fushatë humanitare | MëNdihmo";
+			return;
+		}
+
 		const title = PAGE_TITLES[location.pathname] || "MëNdihmo";
 		document.title = title;
 	}, [location.pathname]);
