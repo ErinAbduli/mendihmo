@@ -1,20 +1,10 @@
 import { Outlet, useNavigate } from "react-router";
-import { Menu, Search, LogOut, UserRound, LayoutDashboard } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import AdminSidebar from "@/components/admin/admin-sidebar";
+import AdminSidebar from "../components/admin/admin-sidebar.tsx";
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import {
 	Sheet,
 	SheetContent,
@@ -34,20 +24,6 @@ const AdminLayout = () => {
 		return <div className="min-h-screen bg-background" />;
 	}
 
-	const getInitials = (name?: string, email?: string) => {
-		const normalizedName = (name ?? "").trim();
-		if (normalizedName) {
-			const parts = normalizedName.split(/\s+/).slice(0, 2);
-			return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
-		}
-
-		if (email) {
-			return email.slice(0, 2).toUpperCase();
-		}
-
-		return "U";
-	};
-
 	const handleLogout = async () => {
 		await logout();
 		navigate("/login");
@@ -57,7 +33,7 @@ const AdminLayout = () => {
 		<div className="min-h-screen bg-background text-foreground">
 			<div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[250px_minmax(0,1fr)]">
 				<div className="hidden md:block">
-					<AdminSidebar />
+					<AdminSidebar user={user ?? undefined} onLogout={handleLogout} />
 				</div>
 
 				<div className="flex min-h-screen flex-col">
@@ -86,74 +62,15 @@ const AdminLayout = () => {
 											Navigimi i panelit
 										</SheetTitle>
 										<AdminSidebar
+											user={user ?? undefined}
 											onNavigate={() =>
 												setOpenSidebar(false)
 											}
+											onLogout={handleLogout}
 										/>
 									</SheetContent>
 								</Sheet>
 							</div>
-
-							<div className="relative max-w-lg flex-1">
-								<Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-								<Input
-									placeholder="Kërko detyra, përdorues ose aplikacione"
-									className="pl-9"
-								/>
-							</div>
-
-							<DropdownMenu modal={false}>
-								<DropdownMenuTrigger asChild>
-									<button
-										type="button"
-										className="inline-flex cursor-pointer items-center gap-2 rounded-md outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-									>
-										<Avatar size="default">
-											<AvatarFallback>
-												{getInitials(
-													user?.name,
-													user?.email,
-												)}
-											</AvatarFallback>
-										</Avatar>
-									</button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="end"
-									className="w-56"
-								>
-									<DropdownMenuLabel className="space-y-1">
-										<p className="font-medium text-sm">
-											{user?.name ?? "Përdorues"}
-										</p>
-										<p className="text-muted-foreground text-xs">
-											{user?.email ?? "Pa email"}
-										</p>
-									</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem
-										onClick={() => navigate("/")}
-									>
-										<LayoutDashboard className="size-4" />
-										Ballina publike
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={() =>
-											navigate("/dashboard/settings")
-										}
-									>
-										<UserRound className="size-4" />
-										Cilësimet e profilit
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={handleLogout}
-										variant="destructive"
-									>
-										<LogOut className="size-4" />
-										Dil
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
 						</div>
 					</header>
 

@@ -27,6 +27,9 @@ export const createCampaignSchema = z.object({
 
 export const updateCampaignSchema = createCampaignSchema
 	.partial()
+	.extend({
+		endDate: z.union([z.string(), z.date(), z.null()]).optional(),
+	})
 	.refine((data) => Object.keys(data).length > 0, {
 		message: "Të paktën një fushë duhet të dërgohet",
 	});

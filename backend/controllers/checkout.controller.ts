@@ -1,15 +1,13 @@
 import type { Request, Response } from "express";
 import { stripe } from "../lib/stripe.ts";
 import { checkoutService } from "../services/checkout.service.ts";
-import type { AuthenticatedRequest } from "../middleware/auth.middleware.ts";
+import type { MaybeAuthenticatedRequest } from "../middleware/auth.middleware.ts";
 
 export const checkoutController = {
 	async createCampaignCheckoutSession(req: Request, res: Response) {
 		try {
-			const userId = (req as AuthenticatedRequest).userId;
-			if (!userId) {
-				return res.status(401).json({ error: "Unauthorized" });
-			}
+			const userId = (req as MaybeAuthenticatedRequest).userId;
+			const anonymous = Boolean(req.body.anonymous);
 
 			const campaignId = req.params.id as string;
 			const amount = Number(req.body.amount);
@@ -17,6 +15,7 @@ export const checkoutController = {
 				campaignId,
 				amount,
 				userId,
+				anonymous,
 				req.headers.origin,
 			);
 
@@ -27,6 +26,10 @@ export const checkoutController = {
 		} catch (error) {
 			if (error instanceof Error && error.message === "Campaign not found") {
 				return res.status(404).json({ error: "Fushata nuk u gjet." });
+			}
+
+			if (error instanceof Error && error.message === "Unauthorized") {
+				return res.status(401).json({ error: "Duhet të hyni në llogari ose të zgjidhni donacion anonim." });
 			}
 
 			if (error instanceof Error && error.message.toLowerCase().includes("stripe checkout session could not be created")) {

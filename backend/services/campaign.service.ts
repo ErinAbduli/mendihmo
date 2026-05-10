@@ -256,7 +256,10 @@ async function generateUniqueCampaignSlug(baseSlug: string, excludeId?: number) 
 	return `${baseSlug}-${nextIndex}`;
 }
 
-function normalizeDate(date: string | Date | undefined, fallback?: Date): Date {
+function normalizeDate(date: string | Date | null | undefined, fallback?: Date): Date | null {
+	if (date === null) {
+		return null;
+	}
 	if (date === undefined) {
 		return fallback ?? new Date();
 	}
@@ -289,7 +292,10 @@ function normalizeCampaignData(campaignData: CampaignInput | CampaignUpdateInput
 		data.currency = campaignData.currency;
 	}
 	if (campaignData.startDate !== undefined) {
-		data.startDate = normalizeDate(campaignData.startDate);
+		const normalizedStartDate = normalizeDate(campaignData.startDate);
+		if (normalizedStartDate) {
+			data.startDate = normalizedStartDate;
+		}
 	}
 	if (campaignData.endDate !== undefined) {
 		data.endDate = normalizeDate(campaignData.endDate);
@@ -364,9 +370,9 @@ export const campaignService = {
 			}
 		}
 
-		const startDate = normalizeDate(campaignData.startDate);
+		const startDate = normalizeDate(campaignData.startDate) ?? new Date();
 		const endDate = campaignData.endDate
-			? normalizeDate(campaignData.endDate)
+			? normalizeDate(campaignData.endDate) ?? new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000)
 			: new Date(startDate.getTime() + 90 * 24 * 60 * 60 * 1000);
 
 		if (endDate < startDate) {
@@ -434,9 +440,57 @@ export const campaignService = {
 			},
 			select: { id: true },
 		});
+		const moderatorRole = await prisma.userRole.findFirst({
+			where: {
+				user_id: userId,
+				role: { normalized_name: "MODERATOR" },
+			},
+			select: { id: true },
+		});
+		const isAdmin = Boolean(adminRole);
+		const isModerator = Boolean(moderatorRole);
+		const isPrivileged = isAdmin || isModerator;
 
-		if (campaign.creatorId !== userId && !adminRole) {
+		if (campaign.creatorId !== userId && !isPrivileged) {
 			throw new Error("You are not allowed to edit this campaign");
+		}
+
+		const normalizedCampaignData: CampaignUpdateInput = {};
+
+		if (isPrivileged) {
+			if (campaignData.title !== undefined) normalizedCampaignData.title = campaignData.title;
+			if (campaignData.slug !== undefined) normalizedCampaignData.slug = campaignData.slug;
+			if (campaignData.description !== undefined) normalizedCampaignData.description = campaignData.description;
+			if (campaignData.goalAmount !== undefined) normalizedCampaignData.goalAmount = campaignData.goalAmount;
+			if (campaignData.currentAmount !== undefined) normalizedCampaignData.currentAmount = campaignData.currentAmount;
+			if (campaignData.currency !== undefined) normalizedCampaignData.currency = campaignData.currency;
+			if (campaignData.startDate !== undefined) normalizedCampaignData.startDate = campaignData.startDate;
+			if (campaignData.endDate !== undefined) normalizedCampaignData.endDate = campaignData.endDate;
+			if (campaignData.status !== undefined) normalizedCampaignData.status = campaignData.status;
+			if (campaignData.categoryId !== undefined) normalizedCampaignData.categoryId = campaignData.categoryId;
+			if (campaignData.country !== undefined) normalizedCampaignData.country = campaignData.country;
+			if (campaignData.postcode !== undefined) normalizedCampaignData.postcode = campaignData.postcode;
+			if (campaignData.coverImage !== undefined) normalizedCampaignData.coverImage = campaignData.coverImage;
+			if (campaignData.images !== undefined) normalizedCampaignData.images = campaignData.images;
+			if (campaignData.videoUrl !== undefined) normalizedCampaignData.videoUrl = campaignData.videoUrl;
+			if (campaignData.backersCount !== undefined) normalizedCampaignData.backersCount = campaignData.backersCount;
+			if (campaignData.likesCount !== undefined) normalizedCampaignData.likesCount = campaignData.likesCount;
+			if (campaignData.viewsCount !== undefined) normalizedCampaignData.viewsCount = campaignData.viewsCount;
+			if (campaignData.isFeatured !== undefined) normalizedCampaignData.isFeatured = campaignData.isFeatured;
+			if (campaignData.isApproved !== undefined) normalizedCampaignData.isApproved = campaignData.isApproved;
+		} else {
+			if (campaignData.status !== undefined && campaignData.status !== "failed") {
+				throw new Error("You are not allowed to change the campaign status");
+			}
+
+			if (campaignData.title !== undefined) normalizedCampaignData.title = campaignData.title;
+			if (campaignData.description !== undefined) normalizedCampaignData.description = campaignData.description;
+			if (campaignData.images !== undefined) normalizedCampaignData.images = campaignData.images;
+
+			if (campaignData.status === "failed") {
+				normalizedCampaignData.status = campaignData.status;
+				normalizedCampaignData.endDate = campaignData.endDate ?? new Date();
+			}
 		}
 
 		const nextSlug = campaignData.title
@@ -455,36 +509,38 @@ export const campaignService = {
 		}
 
 		if (
-			campaignData.startDate !== undefined &&
-			campaignData.endDate !== undefined &&
-			normalizeDate(campaignData.endDate) < normalizeDate(campaignData.startDate)
+			normalizedCampaignData.startDate !== undefined &&
+			normalizedCampaignData.endDate !== undefined &&
+			normalizeDate(normalizedCampaignData.endDate) !== null &&
+			normalizeDate(normalizedCampaignData.startDate) !== null &&
+			normalizeDate(normalizedCampaignData.endDate)! < normalizeDate(normalizedCampaignData.startDate)!
 		) {
 			throw new Error("Campaign end date must be after the start date");
 		}
 
 
 		const [coverImage, images, videoUrl] = await Promise.all([
-			campaignData.coverImage !== undefined
-				? campaignData.coverImage === null
+			normalizedCampaignData.coverImage !== undefined
+				? normalizedCampaignData.coverImage === null
 					? Promise.resolve(null)
 					: uploadMedia(
-						campaignData.coverImage,
-						isVideoDataUrl(campaignData.coverImage) ? "video" : "image",
+						normalizedCampaignData.coverImage,
+						isVideoDataUrl(normalizedCampaignData.coverImage) ? "video" : "image",
 						"campaigns/cover-images",
 					)
 				: Promise.resolve(undefined),
-			campaignData.images !== undefined
-				? uploadCampaignImages(campaignData.images)
+			normalizedCampaignData.images !== undefined
+				? uploadCampaignImages(normalizedCampaignData.images)
 				: Promise.resolve(undefined),
-			campaignData.videoUrl !== undefined
-				? uploadCampaignVideo(campaignData.videoUrl)
+			normalizedCampaignData.videoUrl !== undefined
+				? uploadCampaignVideo(normalizedCampaignData.videoUrl)
 				: Promise.resolve(undefined),
 		]);
 
 		return prisma.campaign.update({
 			where: { id },
 			data: normalizeCampaignData({
-				...campaignData,
+				...normalizedCampaignData,
 				...(nextSlug !== undefined ? { slug: nextSlug } : {}),
 				coverImage,
 				images,
@@ -512,7 +568,7 @@ export const campaignService = {
 			select: { id: true },
 		});
 
-		if (campaign.creatorId !== userId && !adminRole) {
+		if (!adminRole) {
 			throw new Error("You are not allowed to delete this campaign");
 		}
 

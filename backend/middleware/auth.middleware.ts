@@ -7,6 +7,10 @@ export interface AuthenticatedRequest extends Request {
 	userId: number;
 }
 
+export interface MaybeAuthenticatedRequest extends Request {
+	userId?: number;
+}
+
 type AccessTokenPayload = {
 	userId: number | string;
 };
@@ -64,6 +68,54 @@ export const authRequired: RequestHandler = (
 	} catch {
 		return res.status(401).json({ error: "Unauthorized" });
 	}
+};
+
+export const authOptional: RequestHandler = (
+	req: Request,
+	_res: Response,
+	next: NextFunction,
+) => {
+	const authHeader = req.headers.authorization;
+	if (!authHeader || !authHeader.startsWith("Bearer ")) {
+		next();
+		return;
+	}
+
+	const token = authHeader.slice(7).trim();
+	if (!token) {
+		next();
+		return;
+	}
+
+	try {
+		const secret = JWT_CONFIG.access.secret;
+		if (!secret) {
+			next();
+			return;
+		}
+
+		const payload = jwt.verify(token, secret);
+		if (!isAccessTokenPayload(payload)) {
+			next();
+			return;
+		}
+
+		const parsedUserId =
+			typeof payload.userId === "string"
+				? Number.parseInt(payload.userId, 10)
+				: payload.userId;
+
+		if (!Number.isFinite(parsedUserId)) {
+			next();
+			return;
+		}
+
+		(req as MaybeAuthenticatedRequest).userId = parsedUserId;
+	} catch {
+		// Ignore invalid token and continue as guest.
+	}
+
+	next();
 };
 
 export const isAdmin: RequestHandler = async (

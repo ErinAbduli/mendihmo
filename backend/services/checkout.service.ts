@@ -1,8 +1,39 @@
 import type Stripe from "stripe";
+import { createHash } from "node:crypto";
 import { campaignService } from "./campaign.service.ts";
 import { stripe } from "../lib/stripe.ts";
 import { prisma } from "../lib/prisma.ts";
 import { Prisma } from "../generated/prisma/client.ts";
+
+const ANONYMOUS_DONOR_EMAIL = "anonymous-donor@mendihmo.local";
+
+async function resolveAnonymousDonorUserId() {
+	const existing = await prisma.user.findUnique({
+		where: { email: ANONYMOUS_DONOR_EMAIL },
+		select: { id: true },
+	});
+
+	if (existing) {
+		return existing.id;
+	}
+
+	const passwordHash = createHash("sha256")
+		.update(`${ANONYMOUS_DONOR_EMAIL}:${Date.now()}`)
+		.digest("hex");
+
+	const created = await prisma.user.create({
+		data: {
+			emri: "Anonim",
+			mbiemri: "Donator",
+			email: ANONYMOUS_DONOR_EMAIL,
+			password_hash: passwordHash,
+			email_confirmed: true,
+		},
+		select: { id: true },
+	});
+
+	return created.id;
+}
 
 function resolveFrontendOrigin(requestOrigin?: string) {
 	return requestOrigin?.trim() || process.env.FRONTEND_URL || "http://localhost:5173";
@@ -132,17 +163,25 @@ export const checkoutService = {
 	createCampaignCheckoutSession: async (
 		campaignId: string,
 		amount: number,
-		userId: number,
+		userId: number | undefined,
+		anonymous: boolean,
 		requestOrigin?: string,
 	) => {
 		const campaign = await campaignService.getCampaignById(campaignId);
 		const frontendOrigin = resolveFrontendOrigin(requestOrigin);
 		const currency = (campaign.currency || "EUR").toLowerCase();
+		const donorUserId = anonymous
+			? await resolveAnonymousDonorUserId()
+			: userId;
+
+		if (!donorUserId) {
+			throw new Error("Unauthorized");
+		}
 
 		const session = await stripe.checkout.sessions.create({
 			mode: "payment",
 			payment_method_types: ["card"],
-			client_reference_id: String(userId),
+			client_reference_id: String(donorUserId),
 			line_items: [
 				{
 					quantity: 1,
@@ -162,14 +201,16 @@ export const checkoutService = {
 				campaignId: String(campaign.id),
 				amount: String(amount),
 				campaignTitle: campaign.title,
-				userId: String(userId),
+				userId: String(donorUserId),
+				anonymous: anonymous ? "1" : "0",
 			},
 			payment_intent_data: {
 				metadata: {
 					campaignId: String(campaign.id),
 					amount: String(amount),
 					campaignTitle: campaign.title,
-					userId: String(userId),
+					userId: String(donorUserId),
+					anonymous: anonymous ? "1" : "0",
 				},
 			},
 		});
