@@ -64,6 +64,7 @@ const DashboardReports = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState("all");
+	const [orderBy, setOrderBy] = useState<"date-desc" | "date-asc" | "reason" | "reporter">("date-desc");
 
 	useEffect(() => {
 		let mounted = true;
@@ -97,7 +98,7 @@ const DashboardReports = () => {
 
 	const filteredReports = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		return reports.filter((report) => {
+		let results = reports.filter((report) => {
 			const matchesStatus = statusFilter === "all" || report.status === statusFilter;
 			const matchesQuery =
 				q.length === 0 ||
@@ -108,36 +109,32 @@ const DashboardReports = () => {
 
 			return matchesStatus && matchesQuery;
 		});
-	}, [reports, query, statusFilter]);
 
-	const pendingCount = reports.filter((report) => report.status === "pending").length;
+		// Sort
+		results.sort((a, b) => {
+			if (orderBy === "date-desc") {
+				return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+			}
+			if (orderBy === "date-asc") {
+				return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+			}
+			if (orderBy === "reason") {
+				return a.reason.localeCompare(b.reason);
+			}
+			if (orderBy === "reporter") {
+				return a.reporterName.localeCompare(b.reporterName);
+			}
+			return 0;
+		});
+
+		return results;
+	}, [reports, query, statusFilter, orderBy]);
 
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2">
 				<h1 className="font-bold text-2xl tracking-tight">Raporte</h1>
 				<p className="text-sm text-muted-foreground">Shiko dhe shqyrto raportet e dërguara nga përdoruesit.</p>
-			</div>
-
-			<div className="grid gap-4 sm:grid-cols-3">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardDescription>Total</CardDescription>
-						<CardTitle className="text-3xl">{reports.length}</CardTitle>
-					</CardHeader>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardDescription>Në pritje</CardDescription>
-						<CardTitle className="text-3xl">{pendingCount}</CardTitle>
-					</CardHeader>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-						<CardDescription>Shfaqen tani</CardDescription>
-						<CardTitle className="text-3xl">{filteredReports.length}</CardTitle>
-					</CardHeader>
-				</Card>
 			</div>
 
 			<Card>
@@ -165,6 +162,17 @@ const DashboardReports = () => {
 								<SelectItem value="pending">Në pritje</SelectItem>
 								<SelectItem value="reviewed">Shqyrtuar</SelectItem>
 								<SelectItem value="resolved">Zgjidhur</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select value={orderBy} onValueChange={(value) => setOrderBy(value as typeof orderBy)}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Renditje" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="date-desc">Data (i ri)</SelectItem>
+								<SelectItem value="date-asc">Data (i vjetër)</SelectItem>
+								<SelectItem value="reason">Arsyeja</SelectItem>
+								<SelectItem value="reporter">Raportuesi</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>

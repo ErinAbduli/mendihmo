@@ -350,13 +350,17 @@ export const campaignService = {
 			throw new Error("Campaign slug is required");
 		}
 
-		const [slug, creatorExists] = await Promise.all([
+		const [slug, creator] = await Promise.all([
 			generateUniqueCampaignSlug(baseSlug),
-			prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
+			prisma.user.findUnique({ where: { id: userId }, select: { id: true, statusi: true } }),
 		]);
 
-		if (!creatorExists) {
+		if (!creator) {
 			throw new Error("Creator not found");
+		}
+
+		if (creator.statusi !== "aktiv") {
+			throw new Error("Përdoruesi i caktivizuar nuk mund të krijoni fushatë.");
 		}
 
 		if (campaignData.categoryId !== undefined && campaignData.categoryId !== null) {

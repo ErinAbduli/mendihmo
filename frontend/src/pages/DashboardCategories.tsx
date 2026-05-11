@@ -41,6 +41,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	AlertDialog,
 	AlertDialogAction,
 	AlertDialogCancel,
@@ -112,6 +119,8 @@ const DashboardCategories = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
+	const [statusFilter, setStatusFilter] = useState<string>("all");
+	const [orderBy, setOrderBy] = useState<"name" | "date" | "campaigns">("name");
 	const [createDialogOpen, setCreateDialogOpen] = useState(false);
 	const [editDialogOpen, setEditDialogOpen] = useState(false);
 	const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -140,17 +149,36 @@ const DashboardCategories = () => {
 
 	const filteredCategories = useMemo(() => {
 		const normalizedQuery = query.trim().toLowerCase();
-		if (!normalizedQuery) {
-			return categories;
-		}
 
-		return categories.filter((category) => {
-			return (
+		let results = categories.filter((category) => {
+			// Search filter
+			const matchesQuery =
+				!normalizedQuery ||
 				category.name.toLowerCase().includes(normalizedQuery) ||
-				category.slug.toLowerCase().includes(normalizedQuery)
-			);
+				category.slug.toLowerCase().includes(normalizedQuery);
+
+			// Status filter
+				const matchesStatus =
+					statusFilter === "all" ||
+					(statusFilter === "aktiv" && category.isActive) ||
+					(statusFilter === "joaktiv" && !category.isActive);
+
+			return matchesQuery && matchesStatus;
 		});
-	}, [categories, query]);
+
+		// Sort
+		results.sort((a, b) => {
+			if (orderBy === "name") {
+				return a.name.localeCompare(b.name);
+			}
+			if (orderBy === "campaigns") {
+				return b.campaignsCount - a.campaignsCount;
+			}
+			return 0;
+		});
+
+		return results;
+	}, [categories, query, statusFilter, orderBy]);
 
 	const loadCategories = async () => {
 		setLoading(true);
@@ -292,19 +320,42 @@ const DashboardCategories = () => {
 			</div>
 
 			<Card>
-				<CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<div>
-						<CardTitle>Lista e kategorive</CardTitle>
-						<CardDescription>
-							Gjithsej {categories.length} kategori.
-						</CardDescription>
+				<CardHeader>
+					<div className="flex flex-col gap-3">
+						<div>
+							<CardTitle>Lista e kategorive</CardTitle>
+							<CardDescription>
+								Gjithsej {categories.length} kategori.
+							</CardDescription>
+						</div>
+						<div className="flex flex-col gap-3 sm:flex-row">
+							<Input
+								value={query}
+								onChange={(event) => setQuery(event.target.value)}
+								placeholder="Kërko sipas emrit ose slug-ut"
+								className="sm:max-w-xs"
+							/>
+							<Select value={statusFilter} onValueChange={setStatusFilter}>
+								<SelectTrigger className="sm:w-52">
+									<SelectValue placeholder="Të gjitha statuset" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="all">Të gjitha statuset</SelectItem>
+									<SelectItem value="aktiv">Aktive</SelectItem>
+									<SelectItem value="joaktiv">Jo aktive</SelectItem>
+								</SelectContent>
+							</Select>
+							<Select value={orderBy} onValueChange={(value) => setOrderBy(value as typeof orderBy)}>
+								<SelectTrigger className="sm:w-52">
+									<SelectValue placeholder="Renditje" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="name">Emri</SelectItem>
+									<SelectItem value="campaigns">Fushatat</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
 					</div>
-					<Input
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder="Kërko sipas emrit ose slug-ut"
-						className="sm:max-w-xs"
-					/>
 				</CardHeader>
 				<CardContent>
 					{loading ? (

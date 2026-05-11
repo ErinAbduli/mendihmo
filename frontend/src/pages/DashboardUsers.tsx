@@ -216,10 +216,12 @@ const normalizeUsers = (input: unknown): UserRow[] => {
 const buildColumns = ({
 	onEdit,
 	onDelete,
+	onDeactivate,
 	deletingUserId,
 }: {
 	onEdit: (user: UserRow) => void;
 	onDelete: (user: UserRow) => void;
+	onDeactivate: (user: UserRow) => void;
 	deletingUserId: number | null;
 }): ColumnDef<UserRow>[] => [
 	{
@@ -285,6 +287,9 @@ const buildColumns = ({
 						<DropdownMenuItem onClick={() => onEdit(row.original)}>
 							Ndrysho përdoruesin
 						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => onDeactivate(row.original)}>
+							{row.original.status === "active" ? "Caktivizo" : "Aktivizo"}
+						</DropdownMenuItem>
 						<DropdownMenuItem
 							variant="destructive"
 							disabled={deletingUserId === row.original.id}
@@ -309,12 +314,15 @@ const DashboardUsers = () => {
 	const [isCreating, setIsCreating] = useState(false);
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
+	const [deactivatingUserId, setDeactivatingUserId] = useState<number | null>(null);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [pagination, setPagination] = useState<PaginationState>({
 		pageIndex: 0,
 		pageSize: 10,
 	});
 	const [nameFilter, setNameFilter] = useState("");
+	const [roleFilter, setRoleFilter] = useState<string>("all");
+	const [statusFilter, setStatusFilter] = useState<string>("all");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -364,6 +372,15 @@ const DashboardUsers = () => {
 		void fetchUsers();
 	}, []);
 
+	const filteredUsers = useMemo(() => {
+		return users.filter((user) => {
+			const nameMatch = !nameFilter || user.name.toLowerCase().includes(nameFilter.toLowerCase());
+			const roleMatch = roleFilter === "all" || user.role === roleFilter;
+			const statusMatch = statusFilter === "all" || user.status === statusFilter;
+			return nameMatch && roleMatch && statusMatch;
+		});
+	}, [users, nameFilter, roleFilter, statusFilter]);
+
 	useEffect(() => {
 		setColumnFilters(nameFilter ? [{ id: "name", value: nameFilter }] : []);
 	}, [nameFilter]);
@@ -394,8 +411,33 @@ const DashboardUsers = () => {
 		}
 	}
 
+	async function handleDeactivateUser(user: UserRow) {
+		setDeactivatingUserId(user.id);
+		try {
+			const newStatus = user.status === "active" ? "joaktiv" : "aktiv";
+			await apiClient.patch<void>(`/users/${user.id}/toggle-status`, { statusi: newStatus });
+			toast.success(
+				newStatus === "joaktiv"
+					? "Përdoruesi u caktivizua. Nuk mund të krijoni fushatë."
+					: "Përdoruesi u aktivizua.",
+			);
+			await fetchUsers();
+		} catch (err) {
+			const backendMessage = isAxiosError<{ error?: string }>(err)
+				? err.response?.data?.error
+				: null;
+
+			toast.error(
+				localizeErrorMessage(backendMessage) ??
+					"Përditësimi i statusit të përdoruesit dështoi.",
+			);
+		} finally {
+			setDeactivatingUserId(null);
+		}
+	}
+
 	const table = useReactTable({
-		data: users,
+		data: filteredUsers,
 		columns: useMemo(
 			() =>
 				buildColumns({
@@ -415,9 +457,10 @@ const DashboardUsers = () => {
 						setUserToDelete(user);
 						setDeleteDialogOpen(true);
 					},
+					onDeactivate: handleDeactivateUser,
 					deletingUserId,
 				}),
-			[deletingUserId, editForm],
+			[deletingUserId, editForm, deactivatingUserId],
 		),
 		state: {
 			sorting,
@@ -887,15 +930,44 @@ const DashboardUsers = () => {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<Input
-						placeholder="Filtro përdoruesit sipas emrit..."
-						value={nameFilter}
-						onChange={(event) => {
-							setNameFilter(event.target.value);
+					<div className="flex flex-col gap-3 sm:flex-row">
+						<Input
+							placeholder="Filtro përdoruesit sipas emrit..."
+							value={nameFilter}
+							onChange={(event) => {
+								setNameFilter(event.target.value);
+								table.setPageIndex(0);
+							}}
+							className="max-w-sm"
+						/>
+						<Select value={roleFilter} onValueChange={(value) => {
+							setRoleFilter(value);
 							table.setPageIndex(0);
-						}}
-						className="max-w-sm"
-					/>
+						}}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Të gjitha rolet" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">Të gjitha rolet</SelectItem>
+								<SelectItem value="USER">Përdorues</SelectItem>
+								<SelectItem value="MODERATOR">Moderator</SelectItem>
+								<SelectItem value="ADMIN">Admin</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select value={statusFilter} onValueChange={(value) => {
+							setStatusFilter(value);
+							table.setPageIndex(0);
+						}}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Të gjitha statuset" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">Të gjitha statuset</SelectItem>
+								<SelectItem value="aktiv">Aktiv</SelectItem>
+								<SelectItem value="joaktiv">Jo aktiv</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 					<div className="overflow-hidden rounded-md border">
 						<Table>
 							<TableHeader>

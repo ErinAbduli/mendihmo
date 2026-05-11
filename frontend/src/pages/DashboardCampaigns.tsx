@@ -455,6 +455,9 @@ const DashboardCampaigns = () => {
 		pageSize: 10,
 	});
 	const [titleFilter, setTitleFilter] = useState("");
+	const [statusFilter, setStatusFilter] = useState<string>("all");
+	const [categoryFilter, setCategoryFilter] = useState<string>("all");
+	const [orderBy, setOrderBy] = useState<"date-desc" | "date-asc" | "title" | "goal-desc" | "goal-asc">("date-desc");
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -506,8 +509,45 @@ const DashboardCampaigns = () => {
 		setColumnFilters(titleFilter ? [{ id: "title", value: titleFilter }] : []);
 	}, [titleFilter]);
 
+	const filteredCampaigns = useMemo(() => {
+		let results = campaigns.filter((campaign) => {
+			// Title filter
+			const matchesTitle = !titleFilter || campaign.title.toLowerCase().includes(titleFilter.toLowerCase());
+
+			// Status filter
+			const matchesStatus = statusFilter === "all" || campaign.status === statusFilter;
+
+			// Category filter
+			const matchesCategory = categoryFilter === "all" || campaign.categoryId === parseInt(categoryFilter, 10);
+
+			return matchesTitle && matchesStatus && matchesCategory;
+		});
+
+		// Sort
+		results.sort((a, b) => {
+			if (orderBy === "date-desc") {
+				return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+			}
+			if (orderBy === "date-asc") {
+				return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+			}
+			if (orderBy === "title") {
+				return a.title.localeCompare(b.title);
+			}
+			if (orderBy === "goal-desc") {
+				return b.goalAmount - a.goalAmount;
+			}
+			if (orderBy === "goal-asc") {
+				return a.goalAmount - b.goalAmount;
+			}
+			return 0;
+		});
+
+		return results;
+	}, [campaigns, titleFilter, statusFilter, categoryFilter, orderBy]);
+
 	const table = useReactTable({
-		data: campaigns,
+		data: filteredCampaigns,
 		columns: useMemo(
 			() =>
 				buildColumns({
@@ -1286,15 +1326,64 @@ const DashboardCampaigns = () => {
 					</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-4">
-					<Input
-						placeholder="Filtro fushatat sipas titullit..."
-						value={titleFilter}
-						onChange={(event) => {
-							setTitleFilter(event.target.value);
+					<div className="flex flex-col gap-3 sm:flex-row">
+						<Input
+							placeholder="Filtro fushatat sipas titullit..."
+							value={titleFilter}
+							onChange={(event) => {
+								setTitleFilter(event.target.value);
+								table.setPageIndex(0);
+							}}
+							className="max-w-sm"
+						/>
+						<Select value={statusFilter} onValueChange={(value) => {
+							setStatusFilter(value);
 							table.setPageIndex(0);
-						}}
-						className="max-w-sm"
-					/>
+						}}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Të gjitha statuset" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">Të gjitha statuset</SelectItem>
+								<SelectItem value="draft">Skicë</SelectItem>
+								<SelectItem value="pending">Në pritje</SelectItem>
+								<SelectItem value="active">Aktive</SelectItem>
+								<SelectItem value="funded">Funduara</SelectItem>
+								<SelectItem value="failed">Dështuar</SelectItem>
+							</SelectContent>
+						</Select>
+						<Select value={categoryFilter} onValueChange={(value) => {
+							setCategoryFilter(value);
+							table.setPageIndex(0);
+						}}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Të gjitha kategorite" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">Të gjitha kategorite</SelectItem>
+								{categories.map((category) => (
+									<SelectItem key={category.id} value={String(category.id)}>
+										{category.emri}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<Select value={orderBy} onValueChange={(value) => {
+							setOrderBy(value as typeof orderBy);
+							table.setPageIndex(0);
+						}}>
+							<SelectTrigger className="sm:w-52">
+								<SelectValue placeholder="Renditje" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="date-desc">Data (i ri)</SelectItem>
+								<SelectItem value="date-asc">Data (i vjetër)</SelectItem>
+								<SelectItem value="title">Titull</SelectItem>
+								<SelectItem value="goal-desc">Objektivi (i lartë)</SelectItem>
+								<SelectItem value="goal-asc">Objektivi (i ulët)</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 					<div className="overflow-hidden rounded-md border">
 						<Table>
 							<TableHeader>

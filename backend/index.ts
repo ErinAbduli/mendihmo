@@ -8,6 +8,8 @@ import categoryRoutes from "./routes/category.routes.ts";
 import userRoutes from "./routes/user.routes.ts";
 import contactRoutes from "./routes/contact.routes.ts";
 import reportRoutes from "./routes/report.routes.ts";
+import dashboardRoutes from "./routes/dashboard.routes.ts";
+import transactionRoutes from "./routes/transaction.routes.ts";
 import { checkoutController } from "./controllers/checkout.controller.ts";
 import helmet from "helmet";
 
@@ -37,6 +39,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/transactions", transactionRoutes);
 
 app.get("/", async (req: express.Request, res: express.Response) => {
 	res.send("Hello, World!");

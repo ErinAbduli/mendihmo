@@ -21,6 +21,7 @@ router.put(
 	userController.updateUser,
 );
 router.delete("/:id", authRequired, isAdmin, userController.deleteUser);
+router.patch("/:id/toggle-status", authRequired, isAdmin, userController.toggleStatus);
 router.get("/:id", authRequired, userController.getUser);
 router.get("/", authRequired, userController.getAllUsers);
 

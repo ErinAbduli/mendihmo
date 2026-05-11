@@ -78,4 +78,31 @@ export const userController = {
 			res.status(500).json({ error: "Gabim në marrjen e përdoruesve" });
 		}
 	},
+
+	async toggleStatus(req: Request, res: Response) {
+		try {
+			const userId = req.params.id as string;
+			const { statusi } = req.body;
+
+			// Fetch the current user to get all their data
+			const currentUser = await userService.getUser(userId);
+			const currentRole = currentUser.userRoles[0]?.role.normalized_name ?? "USER";
+
+			// Update with all required fields, only changing status
+			const user = await userService.updateUser(userId, {
+				emri: currentUser.emri,
+				mbiemri: currentUser.mbiemri,
+				email: currentUser.email,
+				role: currentRole,
+				statusi,
+			});
+			res.json(user);
+		} catch (error) {
+			const message = (error as Error).message;
+			if (message.toLowerCase().includes("nuk u gjet")) {
+				return res.status(404).json({ error: message });
+			}
+			res.status(500).json({ error: message });
+		}
+	},
 };
