@@ -286,11 +286,17 @@ const normalizeCampaignRows = (input: unknown): CampaignRow[] => {
 };
 
 const normalizeCategories = (input: unknown): ApiCategory[] => {
-	if (!Array.isArray(input)) {
+	const source = Array.isArray(input)
+		? input
+		: input && typeof input === "object" && "categories" in input
+			? (input as { categories: unknown }).categories
+			: [];
+
+	if (!Array.isArray(source)) {
 		return [];
 	}
 
-	return input.filter((item): item is ApiCategory => Boolean(item && typeof item === "object"));
+	return source.filter((item): item is ApiCategory => Boolean(item && typeof item === "object"));
 };
 
 const buildColumns = ({
@@ -510,7 +516,7 @@ const DashboardCampaigns = () => {
 	}, [titleFilter]);
 
 	const filteredCampaigns = useMemo(() => {
-		let results = campaigns.filter((campaign) => {
+		const results = campaigns.filter((campaign) => {
 			// Title filter
 			const matchesTitle = !titleFilter || campaign.title.toLowerCase().includes(titleFilter.toLowerCase());
 
@@ -1143,11 +1149,17 @@ const DashboardCampaigns = () => {
 																	<SelectValue placeholder="Zgjidh kategorinë" />
 																</SelectTrigger>
 																<SelectContent>
-																	{categoryOptions.map((category) => (
-																		<SelectItem key={category.value} value={category.value}>
-																			{category.label}
+																	{categoryOptions.length ? (
+																		categoryOptions.map((category) => (
+																			<SelectItem key={category.value} value={category.value}>
+																				{category.label}
+																			</SelectItem>
+																		))
+																	) : (
+																		<SelectItem value="0" disabled>
+																			Nuk ka kategori
 																		</SelectItem>
-																	))}
+																	)}
 																</SelectContent>
 															</Select>
 														</FormControl>
@@ -1363,7 +1375,7 @@ const DashboardCampaigns = () => {
 								<SelectItem value="all">Të gjitha kategorite</SelectItem>
 								{categories.map((category) => (
 									<SelectItem key={category.id} value={String(category.id)}>
-										{category.emri}
+										{category.name}
 									</SelectItem>
 								))}
 							</SelectContent>

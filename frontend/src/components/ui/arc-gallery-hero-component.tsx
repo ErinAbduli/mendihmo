@@ -36,10 +36,18 @@ export const ArcGalleryHero = ({
 	useEffect(() => {
 		const handleResize = () => {
 			const width = window.innerWidth;
+			const viewportBasedRadius = Math.max(180, Math.floor(width * 0.52));
+			const viewportBasedCard = Math.max(72, Math.floor(width * 0.22));
 			if (width < 640) {
-				setDimensions({ radius: radiusSm, cardSize: cardSizeSm });
+				setDimensions({
+					radius: Math.min(radiusSm, viewportBasedRadius),
+					cardSize: Math.min(cardSizeSm, viewportBasedCard),
+				});
 			} else if (width < 1024) {
-				setDimensions({ radius: radiusMd, cardSize: cardSizeMd });
+				setDimensions({
+					radius: Math.min(radiusMd, viewportBasedRadius),
+					cardSize: Math.min(cardSizeMd, viewportBasedCard),
+				});
 			} else {
 				setDimensions({ radius: radiusLg, cardSize: cardSizeLg });
 			}
@@ -55,12 +63,12 @@ export const ArcGalleryHero = ({
 
 	return (
 		<section
-			className={`relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground ${className}`}
+			className={`relative flex min-h-[88svh] flex-col overflow-hidden bg-background text-foreground sm:min-h-screen ${className}`}
 		>
 			<div
 				className="relative mx-auto w-full"
 				style={{
-					height: dimensions.radius * 1.2,
+					height: Math.max(260, dimensions.radius * 1.2),
 				}}
 			>
 				<div className="absolute bottom-0 left-1/2 -translate-x-1/2">
@@ -108,18 +116,18 @@ export const ArcGalleryHero = ({
 				</div>
 			</div>
 
-			<div className="relative z-10 -mt-72 flex flex-1 items-center justify-center px-6 pt-2 md:-mt-[22rem] md:pt-3 lg:-mt-[24.5rem] lg:pt-4">
+			<div className="relative z-10 -mt-44 flex flex-1 items-center justify-center px-4 pt-2 sm:-mt-56 sm:px-6 md:-mt-88 md:pt-3 lg:-mt-98 lg:pt-4">
 				<div
-					className="max-w-2xl px-6 py-8 text-center opacity-0 animate-fade-in sm:px-8"
+					className="max-w-2xl px-4 py-6 text-center opacity-0 animate-fade-in sm:px-8 sm:py-8"
 					style={{
 						animationDelay: "800ms",
 						animationFillMode: "forwards",
 					}}
 				>
-					<h1 className="text-balance bg-linear-to-b from-foreground to-foreground/80 bg-clip-text text-3xl font-bold leading-[1.15] tracking-tight text-transparent sm:text-5xl lg:text-6xl">
+					<h1 className="text-balance bg-linear-to-b from-foreground to-foreground/80 bg-clip-text text-2xl font-bold leading-[1.15] tracking-tight text-transparent sm:text-4xl lg:text-6xl">
 						Bashkë mund të bëjmë gjithçka
 					</h1>
-					<p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+					<p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
 						Mëndihmo është platforma shqiptare e bamirësisë dhe
 						financimit kolektiv ku çdokush mund të nisë një kauzë
 						ose të mbështesë ato që i beson. Nga nevojat emergjente

@@ -9,7 +9,7 @@ const BentoGrid = React.forwardRef<
 		<div
 			ref={ref}
 			className={cn(
-				"grid w-full auto-rows-[22rem] grid-cols-1 gap-4 md:grid-cols-3",
+				"grid w-full auto-rows-[17rem] grid-cols-1 gap-4 sm:auto-rows-[19rem] md:auto-rows-[22rem] md:grid-cols-3",
 				className,
 			)}
 			{...props}
@@ -37,12 +37,12 @@ const BentoGridItem = React.forwardRef<HTMLDivElement, BentoGridItemProps>(
 			<div
 				ref={ref}
 				className={cn(
-					"group row-span-1 flex cursor-pointer flex-col justify-between space-y-4 overflow-hidden rounded-lg border-0 bg-transparent ring-0 p-4 shadow-none outline-none transition-colors duration-300 ease-in-out hover:bg-foreground/5 hover:shadow-none",
+					"group row-span-1 flex cursor-pointer flex-col justify-between space-y-3 overflow-hidden rounded-lg border-0 bg-transparent ring-0 p-3 shadow-none outline-none transition-colors duration-300 ease-in-out hover:bg-foreground/5 hover:shadow-none sm:space-y-4 sm:p-4",
 					className,
 				)}
 				{...props}
 			>
-				<div className="flex h-full min-h-[6rem] flex-1 overflow-hidden rounded-md border-0 bg-transparent ring-0 outline-none">
+				<div className="flex h-full min-h-24 flex-1 overflow-hidden rounded-md border-0 bg-transparent ring-0 outline-none">
 					{header}
 				</div>
 

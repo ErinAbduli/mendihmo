@@ -5,7 +5,7 @@ import { apiClient } from "@/lib/api";
 import { localizeErrorMessage } from "@/lib/error-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
 	Select,
@@ -35,6 +35,20 @@ type ApiContact = {
 
 type ContactsResponse = {
 	contacts: ApiContact[];
+};
+
+const normalizeContacts = (input: unknown): ApiContact[] => {
+	if (Array.isArray(input)) {
+		return input.filter((item): item is ApiContact => Boolean(item && typeof item === "object"));
+	}
+
+	if (input && typeof input === "object" && "contacts" in input) {
+		const contacts = (input as { contacts: unknown }).contacts;
+		if (!Array.isArray(contacts)) return [];
+		return contacts.filter((item): item is ApiContact => Boolean(item && typeof item === "object"));
+	}
+
+	return [];
 };
 
 const statusLabel = (status: string) => {
@@ -74,9 +88,15 @@ const DashboardContacts = () => {
 		setError(null);
 
 		try {
-			const data = await apiClient.get<ContactsResponse>("/contact");
-			setContacts(data.contacts ?? []);
+			const data = await apiClient.get<ContactsResponse | unknown>("/contact");
+			setContacts(normalizeContacts(data));
 		} catch (err) {
+			if (isAxiosError(err) && err.response?.status === 404) {
+				setContacts([]);
+				setError(null);
+				return;
+			}
+
 			const backendMessage = isAxiosError<{ error?: string }>(err)
 				? err.response?.data?.error ?? err.message
 				: err instanceof Error
@@ -169,35 +189,12 @@ const DashboardContacts = () => {
 		return results;
 	}, [contacts, query, statusFilter, orderBy]);
 
-	const pendingCount = contacts.filter((contact) => contact.status === "pending").length;
-
 	return (
 		<div className="space-y-6">
 			<div className="flex flex-col gap-2">
 				<h1 className="font-bold text-2xl tracking-tight">Kontaktet</h1>
 				<p className="text-sm text-muted-foreground">Mesazhet e dërguara nga faqja Na kontaktoni.</p>
 			</div>
-
-			<div className="grid gap-4 sm:grid-cols-3">
-				<Card>
-					<CardHeader className="pb-2">
-						<CardDescription>Total</CardDescription>
-						<CardTitle className="text-3xl">{contacts.length}</CardTitle>
-					</CardHeader>
-				</Card>
-				<Card>
-					<CardHeader className="pb-2">
-					<CardDescription>Në pritje</CardDescription>
-					<CardTitle className="text-3xl">{pendingCount}</CardTitle>
-				</CardHeader>
-			</Card>
-			<Card>
-				<CardHeader className="pb-2">
-					<CardDescription>Shfaqen tani</CardDescription>
-					<CardTitle className="text-3xl">{filteredContacts.length}</CardTitle>
-				</CardHeader>
-			</Card>
-		</div>
 
 		<Card>
 				<CardContent className="space-y-4">

@@ -155,11 +155,11 @@ const Footer = () => {
 	return (
 		<footer className="border-t bg-muted/30">
 			<div className="mx-auto max-w-(--breakpoint-xl)">
-				<div className="grid grid-cols-2 gap-x-8 gap-y-10 px-6 py-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 xl:px-0">
+				<div className="grid grid-cols-1 gap-x-8 gap-y-10 px-4 py-10 sm:grid-cols-2 sm:px-6 sm:py-12 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 xl:px-0">
 					<div className="col-span-full xl:col-span-2">
 						<Logo />
 
-						<p className="mt-4 text-muted-foreground">
+						<p className="mt-4 max-w-prose text-sm text-muted-foreground sm:text-base">
 							Mëndihmo është platforma shqiptare e bamirësisë dhe
 							financimit kolektiv ku çdokush mund të nisë një
 							kauzë ose të mbështesë ato që i beson. Nga nevojat
@@ -187,9 +187,9 @@ const Footer = () => {
 					))}
 				</div>
 				<Separator />
-				<div className="flex flex-col-reverse items-center justify-between gap-x-2 gap-y-5 px-6 py-8 sm:flex-row xl:px-0">
+				<div className="flex flex-col-reverse items-center justify-between gap-x-3 gap-y-4 px-4 py-6 sm:flex-row sm:px-6 sm:py-8 xl:px-0">
 					{/* Copyright */}
-					<span className="text-muted-foreground">
+					<span className="text-center text-sm text-muted-foreground sm:text-left">
 						&copy; {new Date().getFullYear()}{" "}
 						<Link to="/" target="_blank">
 							mëndihmo
@@ -197,7 +197,7 @@ const Footer = () => {
 						. Të gjitha të drejtat e rezervuara.
 					</span>
 
-					<div className="flex items-center gap-5 text-muted-foreground">
+					<div className="flex flex-wrap items-center justify-center gap-4 text-muted-foreground sm:justify-end">
 						<Link to="#" target="_blank">
 							<BsTwitterX className="h-5 w-5" />
 						</Link>

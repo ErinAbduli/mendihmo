@@ -232,6 +232,20 @@ model Report {
   reporter      User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 }
 
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  status    String   @default("pending")
+
+  createdAt DateTime @default(now())
+
+  @@map("contactmessage")
+}
+
 model Transaction {
   id             Int      @id @default(autoincrement())
 

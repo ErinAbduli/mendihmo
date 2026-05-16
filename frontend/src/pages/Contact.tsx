@@ -26,7 +26,7 @@ const Contact = () => {
 		setSending(true);
 		try {
 			await apiClient.post<
-				{ message: string; contact: { id: string; createdAt: string } },
+				{ message: string; contact: { id: number; createdAt: string } },
 				{ name: string; email: string; subject: string; message: string }
 			>("/contact", {
 				name: name.trim(),
@@ -51,7 +51,7 @@ const Contact = () => {
 
 	return (
 		<div className="min-h-screen bg-background">
-			<section className="border-b border-border/60 bg-gradient-to-b from-primary/10 via-background to-background">
+			<section className="border-b border-border/60 bg-linear-to-b from-primary/10 via-background to-background">
 				<div className="mx-auto w-full max-w-6xl px-4 py-12 md:py-16">
 					<div className="space-y-4">
 						<Badge variant="secondary" className="w-fit">

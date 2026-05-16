@@ -48,13 +48,13 @@ const Navbar = () => {
 
 	return (
 		<nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-			<div className="mx-auto flex h-16 w-full max-w-(--breakpoint-xl) items-center justify-between px-4">
+			<div className="mx-auto flex h-16 w-full max-w-(--breakpoint-xl) items-center justify-between gap-2 px-3 sm:px-4">
 				<Logo onClick={() => navigate("/")} />
 
 				{/* Desktop Menu */}
 				<NavMenu className="hidden md:block" />
 
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-1.5 sm:gap-2">
 					{isAuthenticated && user ? (
 						<>
 							<DropdownMenu modal={false}>
@@ -72,18 +72,18 @@ const Navbar = () => {
 												)}
 											</AvatarFallback>
 										</Avatar>
-										<ChevronDown className="size-4 text-muted-foreground" />
+										<ChevronDown className="hidden size-4 text-muted-foreground sm:block" />
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent
 									align="end"
 									className="w-56"
 								>
-									<DropdownMenuLabel className="space-y-1">
-										<p className="font-medium text-sm">
+									<DropdownMenuLabel className="max-w-52 space-y-1">
+										<p className="truncate font-medium text-sm">
 											{user.name}
 										</p>
-										<p className="text-muted-foreground text-xs">
+										<p className="truncate text-muted-foreground text-xs">
 											{user.email}
 										</p>
 									</DropdownMenuLabel>
@@ -135,7 +135,7 @@ const Navbar = () => {
 								Kyçu
 							</Button>
 							<Button
-								className="rounded-md px-3"
+								className="rounded-md px-2 text-xs sm:px-3 sm:text-sm"
 								size="sm"
 								onClick={() => navigate("/signup")}
 							>

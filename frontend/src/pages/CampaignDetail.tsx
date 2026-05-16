@@ -253,11 +253,31 @@ function delay(ms: number) {
 	return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+function preloadImageWithFallback(src: string, fallback: string) {
+	return new Promise<void>((resolve) => {
+		const image = new window.Image();
+		image.onload = () => resolve();
+		image.onerror = () => {
+			if (fallback === src) {
+				resolve();
+				return;
+			}
+
+			const fallbackImage = new window.Image();
+			fallbackImage.onload = () => resolve();
+			fallbackImage.onerror = () => resolve();
+			fallbackImage.src = fallback;
+		};
+		image.src = src;
+	});
+}
+
 const CampaignDetail = () => {
 	const { id } = useParams();
 	const location = useLocation();
 	const [campaign, setCampaign] = useState<ApiCampaign | null>(null);
 	const [relatedCampaigns, setRelatedCampaigns] = useState<ApiCampaign[]>([]);
+	const [relatedImagesReady, setRelatedImagesReady] = useState(false);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [imageIndex, setImageIndex] = useState(0);
@@ -589,6 +609,35 @@ const CampaignDetail = () => {
 			mounted = false;
 		};
 	}, [campaign?.category?.name, campaign?.id]);
+
+	useEffect(() => {
+		if (!relatedCampaigns.length) {
+			setRelatedImagesReady(true);
+			return;
+		}
+
+		let cancelled = false;
+		setRelatedImagesReady(false);
+
+		void Promise.all(
+			relatedCampaigns.map((related) => {
+				const fallback = buildFallbackImage(
+					related.title,
+					related.category?.name,
+				);
+				const source = related.coverImage ?? fallback;
+				return preloadImageWithFallback(source, fallback);
+			}),
+		).then(() => {
+			if (!cancelled) {
+				setRelatedImagesReady(true);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [relatedCampaigns]);
 
 	const currentPhoto =
 		photos[imageIndex] ??
@@ -989,8 +1038,8 @@ const CampaignDetail = () => {
 
 	return (
 		<div className="min-h-screen bg-white text-foreground">
-			<div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-				<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+				<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<Button
 						variant="ghost"
 						asChild
@@ -1000,18 +1049,19 @@ const CampaignDetail = () => {
 					</Button>
 					<div className="flex flex-wrap items-center gap-2 sm:justify-end">
 						{canEditCampaign ? (
-							<Button size="sm" onClick={openEditDialog}>
+							<Button size="sm" className="flex-1 sm:flex-none" onClick={openEditDialog}>
 								Ndrysho
 							</Button>
 						) : null}
 						{canToggleCampaign ? (
-							<Button size="sm" onClick={openStatusDialog}>
+							<Button size="sm" className="flex-1 sm:flex-none" onClick={openStatusDialog}>
 								{toggleAction === "open" ? "Hap" : "Mbyll"}
 							</Button>
 						) : null}
 						{canDeleteCampaign ? (
 							<Button
 								size="sm"
+								className="flex-1 sm:flex-none"
 								variant="destructive"
 								onClick={openDeleteDialog}
 							>
@@ -1200,7 +1250,8 @@ const CampaignDetail = () => {
 
 							{relatedCampaigns.length ? (
 								<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-									{relatedCampaigns.map((related) => {
+									{relatedImagesReady
+										? relatedCampaigns.map((related) => {
 										const relatedPhoto =
 											related.coverImage ??
 											buildFallbackImage(
@@ -1280,7 +1331,20 @@ const CampaignDetail = () => {
 												</div>
 											</Link>
 										);
-									})}
+									})
+										: Array.from({ length: Math.min(relatedCampaigns.length, 4) }).map((_, index) => (
+											<div
+												key={`related-skeleton-${index}`}
+												className="overflow-hidden rounded-3xl border border-border/60 bg-white shadow-sm"
+											>
+												<div className="aspect-16/10 animate-pulse bg-muted" />
+												<div className="space-y-2 p-4">
+													<div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+													<div className="h-4 w-11/12 animate-pulse rounded bg-muted" />
+													<div className="h-1.5 w-full animate-pulse rounded bg-muted" />
+												</div>
+											</div>
+										))}
 								</div>
 							) : (
 								<p className="text-sm text-muted-foreground">
@@ -1482,7 +1546,7 @@ const CampaignDetail = () => {
 						</DialogDescription>
 					</DialogHeader>
 
-					<div className="flex gap-2">
+					<div className="flex flex-wrap gap-2">
 						<Button
 							type="button"
 							variant={

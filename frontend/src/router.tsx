@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard.tsx";
 import DashboardCampaigns from "./pages/DashboardCampaigns.tsx";
 import DashboardReports from "./pages/DashboardReports.tsx";
 import DashboardComments from "./pages/DashboardComments.tsx";
+import DashboardContacts from "./pages/DashboardContacts.tsx";
 import DashboardUsers from "./pages/DashboardUsers.tsx";
 import DashboardTransactions from "./pages/DashboardTransactions.tsx";
 import DashboardCategories from "./pages/DashboardCategories.tsx";
@@ -95,6 +96,10 @@ const router = createBrowserRouter([
 			{
 				path: "reports",
 				element: <DashboardReports />,
+			},
+			{
+				path: "contacts",
+				element: <DashboardContacts />,
 			},
 			{
 				path: "comments",

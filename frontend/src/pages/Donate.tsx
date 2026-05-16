@@ -233,6 +233,26 @@ function mergeCampaignLists(primary: Campaign[], secondary: Campaign[]) {
 	return merged;
 }
 
+function preloadCampaignImage(campaign: Campaign) {
+	return new Promise<void>((resolve) => {
+		const image = new window.Image();
+		image.onload = () => resolve();
+		image.onerror = () => {
+			const fallback = campaignCoverFallback(campaign.category, campaign.title);
+			if (fallback === campaign.imageUrl) {
+				resolve();
+				return;
+			}
+
+			const fallbackImage = new window.Image();
+			fallbackImage.onload = () => resolve();
+			fallbackImage.onerror = () => resolve();
+			fallbackImage.src = fallback;
+		};
+		image.src = campaign.imageUrl;
+	});
+}
+
 const Donate = () => {
 	const user = useAuthStore((state) => state.user);
 	const currentRole = (user?.role ?? "").toUpperCase();
@@ -247,6 +267,7 @@ const Donate = () => {
 	const [hasMore, setHasMore] = useState(true);
 	const [page, setPage] = useState(1);
 	const [apiError, setApiError] = useState<string | null>(null);
+	const [imagesReady, setImagesReady] = useState(false);
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState<string>("Të gjitha");
 	const [sortBy, setSortBy] = useState<"newest" | "mostFunded" | "mostDonors" | "endingSoon">("newest");
@@ -399,11 +420,39 @@ const Donate = () => {
 		return CATEGORIES;
 	}, [campaigns]);
 
+	useEffect(() => {
+		if (loading) {
+			setImagesReady(false);
+			return;
+		}
+
+		if (filtered.length === 0) {
+			setImagesReady(true);
+			return;
+		}
+
+		let cancelled = false;
+		setImagesReady(false);
+
+		void Promise.all(filtered.map((campaign) => preloadCampaignImage(campaign))).then(() => {
+			if (!cancelled) {
+				setImagesReady(true);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [filtered, loading]);
+
+	const showGridSkeletons = loading || !imagesReady;
+	const skeletonCount = loading ? PAGE_SIZE : Math.max(filtered.length, 3);
+
 	return (
 		<div className="bg-background pt-6">
 			<section className="mx-auto w-full max-w-6xl px-4 pb-14">
 				<div className="space-y-1">
-					<h1 className="font-heading text-3xl font-semibold tracking-tight">
+					<h1 className="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
 						Eksploro të gjitha fushatat
 					</h1>
 					<p className="text-sm text-muted-foreground">
@@ -420,9 +469,9 @@ const Donate = () => {
 							aria-label="Kërko fushata"
 						/>
 					</div>
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
 							<Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-								<SelectTrigger className="w-44">
+								<SelectTrigger className="w-full sm:w-44">
 									<SelectValue placeholder="Rendit sipas" />
 								</SelectTrigger>
 								<SelectContent>
@@ -434,7 +483,7 @@ const Donate = () => {
 							</Select>
 
 							<Select value={category} onValueChange={setCategory}>
-								<SelectTrigger className="w-44">
+								<SelectTrigger className="w-full sm:w-44">
 									<SelectValue placeholder="Zgjidh kategorinë" />
 								</SelectTrigger>
 								<SelectContent>
@@ -450,24 +499,16 @@ const Donate = () => {
 					</div>
 
 				<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{loading
-						? Array.from({ length: PAGE_SIZE }).map((_, index) => (
-							<CampaignCardSkeleton key={`initial-skeleton-${index}`} />
+					{showGridSkeletons
+						? Array.from({ length: skeletonCount }).map((_, index) => (
+							<CampaignCardSkeleton key={`grid-skeleton-${index}`} />
 						))
-						: null}
-					{filtered.map((c) => (
-						<CampaignCard key={c.id} campaign={c} />
-					))}
-					{!loading && loadingMore
-						? Array.from({ length: 3 }).map((_, index) => (
-							<CampaignCardSkeleton key={`more-skeleton-${index}`} />
-						))
-						: null}
+						: filtered.map((c) => <CampaignCard key={c.id} campaign={c} />)}
 				</div>
 
 				<div ref={sentinelRef} className="h-2 w-full" aria-hidden="true" />
 
-				{loading ? (
+				{showGridSkeletons ? (
 					<p className="mt-6 text-sm text-muted-foreground">Duke ngarkuar fushatat...</p>
 				) : null}
 				{apiError ? (
@@ -489,6 +530,7 @@ const Donate = () => {
 
 function CampaignCard({ campaign, large }: { campaign: Campaign; large?: boolean }) {
 	const progress = clampPercent((campaign.raisedEuro / campaign.goalEuro) * 100);
+	
 	return (
 		<Link
 			to={`/donate/${campaign.id}`}
