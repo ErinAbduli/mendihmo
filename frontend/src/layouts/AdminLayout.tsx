@@ -31,8 +31,8 @@ const AdminLayout = () => {
 
 	return (
 		<div className="min-h-screen bg-background text-foreground">
-			<div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[250px_minmax(0,1fr)]">
-				<div className="hidden md:block">
+			<div className="grid min-h-screen w-full grid-cols-1 md:grid-cols-[250px_minmax(0,1fr)] md:items-start">
+				<div className="hidden md:block md:sticky md:top-0 md:h-screen md:self-start">
 					<AdminSidebar user={user ?? undefined} onLogout={handleLogout} />
 				</div>
 

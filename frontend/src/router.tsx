@@ -13,12 +13,10 @@ import SignUp from "./pages/SignUp.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import DashboardCampaigns from "./pages/DashboardCampaigns.tsx";
 import DashboardReports from "./pages/DashboardReports.tsx";
-import DashboardComments from "./pages/DashboardComments.tsx";
 import DashboardContacts from "./pages/DashboardContacts.tsx";
 import DashboardUsers from "./pages/DashboardUsers.tsx";
 import DashboardTransactions from "./pages/DashboardTransactions.tsx";
 import DashboardCategories from "./pages/DashboardCategories.tsx";
-import DashboardSettings from "./pages/DashboardSettings.tsx";
 import GuestRoute from "./utils/guest-route.tsx";
 import ProtectedRoute from "./utils/protected-route.tsx";
 import AdminProtectedRoute from "./utils/admin-protected-route.tsx";
@@ -102,10 +100,6 @@ const router = createBrowserRouter([
 				element: <DashboardContacts />,
 			},
 			{
-				path: "comments",
-				element: <DashboardComments />,
-			},
-			{
 				path: "users",
 				element: <DashboardUsers />,
 			},
@@ -116,10 +110,6 @@ const router = createBrowserRouter([
 			{
 				path: "categories",
 				element: <DashboardCategories />,
-			},
-			{
-				path: "settings",
-				element: <DashboardSettings />,
 			},
 		],
 	},

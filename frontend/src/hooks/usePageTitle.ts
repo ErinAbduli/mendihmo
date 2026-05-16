@@ -12,11 +12,9 @@ const PAGE_TITLES: Record<string, string> = {
 	"/dashboard": "Paneli i përdoruesit | MëNdihmo",
 	"/dashboard/campaigns": "Menaxho fushatat | MëNdihmo",
 	"/dashboard/reports": "Raporte dhe analiza | MëNdihmo",
-	"/dashboard/comments": "Komentet | MëNdihmo",
 	"/dashboard/users": "Menaxhimi i përdoruesve | MëNdihmo",
 	"/dashboard/transactions": "Transaksionet dhe pagesat | MëNdihmo",
 	"/dashboard/categories": "Kategoritë e fushatave | MëNdihmo",
-	"/dashboard/settings": "Cilësimet e llogarisë | MëNdihmo",
 };
 
 export function usePageTitle() {

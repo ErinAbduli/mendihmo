@@ -4,13 +4,10 @@ import {
 	LayoutDashboard,
 	Megaphone,
 	BarChart3,
-	MessageSquare,
 	Mail,
 	Users,
 	CreditCard,
 	Tags,
-	Settings,
-	UserRound,
 	ChevronUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,11 +33,9 @@ const navItems: AdminNavItem[] = [
 	{ label: "Fushata", to: "/dashboard/campaigns", icon: Megaphone },
 	{ label: "Raporte", to: "/dashboard/reports", icon: BarChart3 },
 	{ label: "Kontaktet", to: "/dashboard/contacts", icon: Mail },
-	{ label: "Komente", to: "/dashboard/comments", icon: MessageSquare },
 	{ label: "Përdoruesit", to: "/dashboard/users", icon: Users },
 	{ label: "Transaksione", to: "/dashboard/transactions", icon: CreditCard },
 	{ label: "Kategori", to: "/dashboard/categories", icon: Tags },
-	{ label: "Cilësimet", to: "/dashboard/settings", icon: Settings },
 ];
 
 type AdminSidebarProps = {
@@ -78,7 +73,7 @@ const AdminSidebar = ({ onNavigate, user, onLogout }: AdminSidebarProps) => {
 	};
 
 	return (
-		<aside className="flex h-full w-full flex-col border-r bg-sidebar px-3 py-4 text-sidebar-foreground">
+		<aside className="flex h-full max-h-screen w-full flex-col overflow-y-auto border-r bg-sidebar px-3 py-4 text-sidebar-foreground">
 			<div className="px-2 pb-5">
 				<Logo
 					className="h-8"
@@ -141,10 +136,6 @@ const AdminSidebar = ({ onNavigate, user, onLogout }: AdminSidebarProps) => {
 							<DropdownMenuItem onClick={() => navigate("/")}>
 								<LayoutDashboard className="size-4" />
 								Ballina publike
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
-								<UserRound className="size-4" />
-								Profili
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 						{onLogout ? (
