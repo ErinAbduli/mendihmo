@@ -77,9 +77,14 @@ export const campaignController = {
 		}
 	},
 
-	async getAllCampaigns(_req: Request, res: Response) {
+	async getAllCampaigns(req: Request, res: Response) {
 		try {
-			const campaigns = await campaignService.getAllCampaigns();
+			const rawPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+			const rawLimit = Number.parseInt(String(req.query.limit ?? "12"), 10);
+			const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+			const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 12;
+
+			const campaigns = await campaignService.getAllCampaigns({ page, limit });
 			res.json(campaigns);
 		} catch (error) {
 			sendError(res, error);

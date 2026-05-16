@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { isAxiosError } from "axios";
@@ -30,6 +30,7 @@ const formSchema = z.object({
 
 export const LoginForm = () => {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const login = useAuthStore((state) => state.login);
 	const isLoading = useAuthStore((state) => state.isLoading);
 	const authError = useAuthStore((state) => state.error);
@@ -48,7 +49,8 @@ export const LoginForm = () => {
 		try {
 			await login(values);
 			toast.success("Kyçja u krye me sukses.");
-			navigate("/");
+			const from = (location.state as { from?: string } | null)?.from;
+			navigate(from ?? "/", { replace: true });
 		} catch (error) {
 			const rawMessage = isAxiosError<{ error?: string }>(error)
 				? (error.response?.data?.error ?? authError ?? "Kyçja dështoi.")

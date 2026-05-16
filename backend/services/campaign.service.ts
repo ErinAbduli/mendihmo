@@ -350,17 +350,13 @@ export const campaignService = {
 			throw new Error("Campaign slug is required");
 		}
 
-		const [slug, creator] = await Promise.all([
+		const [slug, creatorExists] = await Promise.all([
 			generateUniqueCampaignSlug(baseSlug),
-			prisma.user.findUnique({ where: { id: userId }, select: { id: true, statusi: true } }),
+			prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
 		]);
 
-		if (!creator) {
+		if (!creatorExists) {
 			throw new Error("Creator not found");
-		}
-
-		if (creator.statusi !== "aktiv") {
-			throw new Error("Përdoruesi i caktivizuar nuk mund të krijoni fushatë.");
 		}
 
 		if (campaignData.categoryId !== undefined && campaignData.categoryId !== null) {
@@ -591,10 +587,27 @@ export const campaignService = {
 
 		return campaign;
 	},
-	getAllCampaigns: async () => {
-		return prisma.campaign.findMany({
-			select: campaignSelect,
-			orderBy: { createdAt: "desc" },
-		});
+	getAllCampaigns: async (options?: { page?: number; limit?: number }) => {
+		const page = Math.max(1, options?.page ?? 1);
+		const limit = Math.max(1, Math.min(50, options?.limit ?? 12));
+		const skip = (page - 1) * limit;
+
+		const [campaigns, total] = await Promise.all([
+			prisma.campaign.findMany({
+				select: campaignSelect,
+				orderBy: { createdAt: "desc" },
+				skip,
+				take: limit,
+			}),
+			prisma.campaign.count(),
+		]);
+
+		return {
+			campaigns,
+			page,
+			limit,
+			total,
+			hasMore: skip + campaigns.length < total,
+		};
 	},
 };

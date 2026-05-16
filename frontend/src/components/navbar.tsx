@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/store/authStore";
 import { ChevronDown, LogOut, UserRound, LayoutDashboard } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 const Navbar = () => {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const user = useAuthStore((state) => state.user);
 	const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 	const logout = useAuthStore((state) => state.logout);
@@ -123,7 +124,13 @@ const Navbar = () => {
 								className="hidden rounded-md px-3 sm:inline-flex"
 								size="sm"
 								variant="outline"
-								onClick={() => navigate("/login")}
+								onClick={() =>
+									navigate("/login", {
+										state: {
+											from: `${location.pathname}${location.search}`,
+										},
+									})
+								}
 							>
 								Kyçu
 							</Button>

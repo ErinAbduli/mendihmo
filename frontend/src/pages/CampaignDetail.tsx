@@ -6,7 +6,7 @@ import {
 	type FormEvent,
 	type UIEvent,
 } from "react";
-import { Link, useParams, useNavigate } from "react-router";
+import { Link, useLocation, useParams, useNavigate } from "react-router";
 import { isAxiosError } from "axios";
 import { ChevronLeft, ChevronRight, Flag, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -255,6 +255,7 @@ function delay(ms: number) {
 
 const CampaignDetail = () => {
 	const { id } = useParams();
+	const location = useLocation();
 	const [campaign, setCampaign] = useState<ApiCampaign | null>(null);
 	const [relatedCampaigns, setRelatedCampaigns] = useState<ApiCampaign[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -750,7 +751,9 @@ const CampaignDetail = () => {
 
 	const handleGuestLoginChoice = () => {
 		setDonationAuthChoiceOpen(false);
-		navigate("/login");
+		navigate("/login", {
+			state: { from: `${location.pathname}${location.search}` },
+		});
 	};
 
 	const handleDonationListScroll = (event: UIEvent<HTMLDivElement>) => {

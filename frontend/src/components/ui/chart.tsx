@@ -28,7 +28,7 @@ export const ChartContainer = React.forwardRef<HTMLDivElement, ChartContainerPro
 			<ChartContext.Provider value={config}>
 				<div
 					ref={ref}
-					className={cn("w-full", className)}
+					className={cn("w-full outline-none focus:outline-none", className)}
 					style={{ ...cssVariables, ...style } as React.CSSProperties}
 					{...props}
 				>

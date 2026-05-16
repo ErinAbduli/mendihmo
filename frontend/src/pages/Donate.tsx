@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { isAxiosError } from "axios";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/authStore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Campaign = {
 	id: string;
@@ -23,6 +23,7 @@ type Campaign = {
 	createdDaysAgo: number;
 	featured?: boolean;
 	status?: "draft" | "pending" | "active" | "funded" | "failed";
+	creatorEmail?: string;
 };
 
 type ApiCampaign = {
@@ -37,6 +38,14 @@ type ApiCampaign = {
 	status: "draft" | "pending" | "active" | "funded" | "failed";
 	category: { name: string } | null;
 	creator: { emri: string; mbiemri: string; email: string } | null;
+};
+
+type CampaignListResponse = {
+	campaigns: unknown;
+	page?: number;
+	limit?: number;
+	hasMore?: boolean;
+	total?: number;
 };
 
 const CATEGORIES = [
@@ -201,6 +210,7 @@ function mapToDonateCampaign(campaign: ApiCampaign): Campaign {
 		id: String(campaign.id),
 		title: campaign.title,
 		organizer: organizerName,
+		creatorEmail: campaign.creator?.email ?? undefined,
 		category: campaign.category?.name ?? "Të tjera",
 		imageUrl: campaign.coverImage || campaignCoverFallback(campaign.category?.name ?? "Të tjera", campaign.title),
 		goalEuro: campaign.goalAmount,
@@ -224,53 +234,138 @@ function mergeCampaignLists(primary: Campaign[], secondary: Campaign[]) {
 }
 
 const Donate = () => {
+	const user = useAuthStore((state) => state.user);
+	const currentRole = (user?.role ?? "").toUpperCase();
+	const isPrivilegedViewer =
+		currentRole === "ADMIN" ||
+		currentRole === "MODERATOR" ||
+		currentRole === "MANAGER";
+
 	const [campaigns, setCampaigns] = useState<Campaign[]>(CAMPAIGNS);
 	const [loading, setLoading] = useState(true);
+	const [loadingMore, setLoadingMore] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+	const [page, setPage] = useState(1);
 	const [apiError, setApiError] = useState<string | null>(null);
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState<string>("Të gjitha");
+	const [sortBy, setSortBy] = useState<"newest" | "mostFunded" | "mostDonors" | "endingSoon">("newest");
+	const sentinelRef = useRef<HTMLDivElement | null>(null);
+	const PAGE_SIZE = 9;
 
-	useEffect(() => {
-		let mounted = true;
-		(async () => {
-			setLoading(true);
-			setApiError(null);
+	const canSeeClosedCampaign = useCallback(
+		(item: ApiCampaign) => {
+			if (item.status !== "failed") return true;
+			if (isPrivilegedViewer) return true;
+			const currentEmail = user?.email?.toLowerCase();
+			const creatorEmail = item.creator?.email?.toLowerCase();
+			return Boolean(currentEmail && creatorEmail && currentEmail === creatorEmail);
+		},
+		[isPrivilegedViewer, user?.email],
+	);
+
+	const fetchCampaignPage = useCallback(
+		async (nextPage: number, replace = false) => {
+			if (replace) {
+				setLoading(true);
+				setApiError(null);
+			} else {
+				setLoadingMore(true);
+			}
+
 			try {
-				const data = await apiClient.get<unknown>("/campaigns");
-				if (!mounted) return;
-				const normalized = normalizeCampaigns(data)
-					.filter((item) => item.status !== "draft" && item.status !== "failed")
+				const data = await apiClient.get<CampaignListResponse | unknown>(
+					`/campaigns?page=${nextPage}&limit=${PAGE_SIZE}`,
+				);
+				const isLegacyArrayResponse = Array.isArray(data);
+				const normalizedAll = normalizeCampaigns(data)
+					.filter((item) => item.status !== "draft")
+					.filter(canSeeClosedCampaign)
 					.map(mapToDonateCampaign);
-				setCampaigns(normalized.length ? mergeCampaignLists(normalized, CAMPAIGNS) : CAMPAIGNS);
+				const normalized = isLegacyArrayResponse
+					? normalizedAll.slice(
+							(nextPage - 1) * PAGE_SIZE,
+							nextPage * PAGE_SIZE,
+						)
+					: normalizedAll;
+
+				let appendedCount = normalized.length;
+
+				if (replace) {
+					setCampaigns(normalized.length ? normalized : CAMPAIGNS);
+				} else {
+					setCampaigns((current) => {
+						const merged = mergeCampaignLists(current, normalized);
+						appendedCount = merged.length - current.length;
+						return merged;
+					});
+				}
+
+				const responseMeta =
+					data && typeof data === "object" && "hasMore" in data
+						? (data as CampaignListResponse)
+						: null;
+				if (isLegacyArrayResponse) {
+					// Legacy backend may ignore page/limit and return all campaigns.
+					setHasMore(normalizedAll.length > nextPage * PAGE_SIZE);
+				} else if (responseMeta) {
+					setHasMore(Boolean(responseMeta.hasMore));
+				} else {
+					setHasMore(normalized.length >= PAGE_SIZE);
+				}
+
+				if (!replace && appendedCount <= 0) {
+					// No new unique campaigns were added, so stop paging to avoid observer loops.
+					setHasMore(false);
+				}
+				setPage(nextPage);
 			} catch (error) {
-				if (!mounted) return;
 				const backendMessage = isAxiosError<{ error?: string }>(error)
 					? error.response?.data?.error ?? error.message
 					: error instanceof Error
 						? error.message
 						: "Dështoi ngarkimi i fushatave.";
 				setApiError(backendMessage);
-				setCampaigns(CAMPAIGNS);
+				if (replace) {
+					setCampaigns(CAMPAIGNS);
+					setHasMore(false);
+				}
 			} finally {
-				if (mounted) setLoading(false);
+				if (replace) {
+					setLoading(false);
+				} else {
+					setLoadingMore(false);
+				}
 			}
-		})();
-		return () => {
-			mounted = false;
-		};
-	}, []);
-
-	const featured = useMemo(
-		() => {
-			const featuredCampaigns = campaigns.filter((c) => c.featured);
-			return featuredCampaigns.length ? featuredCampaigns : campaigns.slice(0, 2);
 		},
-		[campaigns],
+		[canSeeClosedCampaign],
 	);
+
+	useEffect(() => {
+		void fetchCampaignPage(1, true);
+	}, [fetchCampaignPage]);
+
+	useEffect(() => {
+		const sentinel = sentinelRef.current;
+		if (!sentinel) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				const [entry] = entries;
+				if (!entry?.isIntersecting) return;
+				if (loading || loadingMore || !hasMore) return;
+				void fetchCampaignPage(page + 1, false);
+			},
+			{ rootMargin: "320px 0px" },
+		);
+
+		observer.observe(sentinel);
+		return () => observer.disconnect();
+	}, [fetchCampaignPage, hasMore, loading, loadingMore, page]);
 
 	const filtered = useMemo(() => {
 		const q = query.trim().toLowerCase();
-		return campaigns.filter((c) => {
+		let list = campaigns.filter((c) => {
 			const matchesCategory = category === "Të gjitha" || c.category === category;
 			const matchesQuery =
 				q.length === 0 ||
@@ -280,7 +375,21 @@ const Donate = () => {
 
 			return matchesCategory && matchesQuery;
 		});
-	}, [campaigns, category, query]);
+
+		if (sortBy === "mostFunded") {
+			list = list.slice().sort((a, b) => (b.raisedEuro / b.goalEuro) - (a.raisedEuro / a.goalEuro));
+		} else if (sortBy === "mostDonors") {
+			list = list.slice().sort((a, b) => b.donors - a.donors);
+		} else if (sortBy === "endingSoon") {
+			// we don't have endDate on the lightweight model; keep createdDaysAgo as proxy (older first => ending later)
+			list = list.slice().sort((a, b) => a.createdDaysAgo - b.createdDaysAgo);
+		} else {
+			// newest: smaller createdDaysAgo means more recent
+			list = list.slice().sort((a, b) => a.createdDaysAgo - b.createdDaysAgo);
+		}
+
+		return list;
+	}, [campaigns, category, query, sortBy]);
 
 	const dynamicCategories = useMemo(() => {
 		const categoriesFromCampaigns = Array.from(
@@ -291,129 +400,79 @@ const Donate = () => {
 	}, [campaigns]);
 
 	return (
-		<div className="bg-background">
-			<section className="border-b border-border/60 bg-linear-to-b from-primary/10 via-background to-background">
-				<div className="mx-auto w-full max-w-6xl px-4 py-10 md:py-14">
-					<div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-center">
-						<div className="space-y-4">
-							<Badge variant="secondary" className="w-fit">
-								Dhuro • Ndihmo dikë sot
-							</Badge>
-							<h1 className="font-heading text-3xl font-semibold tracking-tight md:text-4xl">
-								Gjej një fushatë për të mbështetur
-							</h1>
-							<p className="max-w-prose text-muted-foreground">
-								Strukturë e stilit GoFundMe: kërko, filtro sipas kategorisë, shiko
-								progresin dhe dhuro me disa klikime.
-							</p>
-							{loading ? (
-								<p className="text-xs text-muted-foreground">Duke ngarkuar fushatat reale...</p>
-							) : null}
-							{apiError ? (
-								<p className="text-xs text-muted-foreground">
-									Po shfaqen fushatat demo (API: {apiError}).
-								</p>
-							) : null}
-
-							<div className="flex flex-col gap-3 sm:flex-row">
-								<div className="flex-1">
-									<Input
-										value={query}
-										onChange={(e) => setQuery(e.target.value)}
-										placeholder="Kërko fushata, organizator, qytet…"
-										aria-label="Kërko fushata"
-									/>
-								</div>
-								<Button asChild className="sm:w-auto">
-									<Link to="/start-campaign">Nis një fushatë</Link>
-								</Button>
-							</div>
-						</div>
-
-						<Card className="bg-card/60">
-							<CardHeader>
-								<CardTitle>Si funksionon</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-3 text-muted-foreground">
-								<div className="flex items-start gap-3">
-									<div className="mt-0.5 size-2 rounded-full bg-primary" />
-									<p>Kërko një fushatë që të prek.</p>
-								</div>
-								<div className="flex items-start gap-3">
-									<div className="mt-0.5 size-2 rounded-full bg-primary" />
-									<p>Shiko qëllimin dhe progresin.</p>
-								</div>
-								<div className="flex items-start gap-3">
-									<div className="mt-0.5 size-2 rounded-full bg-primary" />
-									<p>Dhuro dhe shpërndaje me miqtë.</p>
-								</div>
-							</CardContent>
-							<CardFooter className="border-t border-border/60">
-								<Button variant="outline" asChild className="w-full">
-									<Link to="/start-campaign">Krijo fushatën tënde</Link>
-								</Button>
-							</CardFooter>
-						</Card>
-					</div>
-				</div>
-			</section>
-
-			<section className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="space-y-1">
-						<h2 className="font-heading text-xl font-semibold tracking-tight">
-							Fushata të zgjedhura
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Disa shembuj për ta nisur eksplorimin.
-						</p>
-					</div>
-					<Button variant="ghost" onClick={() => setQuery("")}>
-						Pastro kërkimin
-					</Button>
-				</div>
-
-				<div className="mt-5 grid gap-4 md:grid-cols-2">
-					{featured.map((c) => (
-						<CampaignCard key={c.id} campaign={c} />
-					))}
-				</div>
-			</section>
-
+		<div className="bg-background pt-6">
 			<section className="mx-auto w-full max-w-6xl px-4 pb-14">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="space-y-1">
-						<h2 className="font-heading text-xl font-semibold tracking-tight">
-							Eksploro të gjitha fushatat
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Filtro sipas kategorisë ose kërko me fjalë kyçe.
-						</p>
-					</div>
-					<div className="flex flex-wrap gap-2">
-						<CategoryChip
-							active={category === "Të gjitha"}
-							onClick={() => setCategory("Të gjitha")}
-						>
-							Të gjitha
-						</CategoryChip>
-						{dynamicCategories.map((c) => (
-							<CategoryChip
-								key={c}
-								active={category === c}
-								onClick={() => setCategory(c)}
-							>
-								{c}
-							</CategoryChip>
-						))}
-					</div>
+				<div className="space-y-1">
+					<h1 className="font-heading text-3xl font-semibold tracking-tight">
+						Eksploro të gjitha fushatat
+					</h1>
+					<p className="text-sm text-muted-foreground">
+						Filtro sipas kategorisë ose kërko me fjalë kyçe.
+					</p>
 				</div>
+
+				<div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+					<div className="w-full lg:flex-1">
+						<Input
+							value={query}
+							onChange={(e) => setQuery(e.target.value)}
+							placeholder="Kërko fushata, organizator, qytet…"
+							aria-label="Kërko fushata"
+						/>
+					</div>
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+							<Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+								<SelectTrigger className="w-44">
+									<SelectValue placeholder="Rendit sipas" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="newest">Më të rejat</SelectItem>
+									<SelectItem value="mostFunded">Më të financuara</SelectItem>
+									<SelectItem value="mostDonors">Më shumë dhurues</SelectItem>
+									<SelectItem value="endingSoon">Përfundon së shpejti</SelectItem>
+								</SelectContent>
+							</Select>
+
+							<Select value={category} onValueChange={setCategory}>
+								<SelectTrigger className="w-44">
+									<SelectValue placeholder="Zgjidh kategorinë" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="Të gjitha">Të gjitha</SelectItem>
+									{dynamicCategories.map((option) => (
+										<SelectItem key={option} value={option}>
+											{option}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					</div>
 
 				<div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+					{loading
+						? Array.from({ length: PAGE_SIZE }).map((_, index) => (
+							<CampaignCardSkeleton key={`initial-skeleton-${index}`} />
+						))
+						: null}
 					{filtered.map((c) => (
 						<CampaignCard key={c.id} campaign={c} />
 					))}
+					{!loading && loadingMore
+						? Array.from({ length: 3 }).map((_, index) => (
+							<CampaignCardSkeleton key={`more-skeleton-${index}`} />
+						))
+						: null}
 				</div>
+
+				<div ref={sentinelRef} className="h-2 w-full" aria-hidden="true" />
+
+				{loading ? (
+					<p className="mt-6 text-sm text-muted-foreground">Duke ngarkuar fushatat...</p>
+				) : null}
+				{apiError ? (
+					<p className="mt-2 text-xs text-muted-foreground">Po shfaqen të dhëna fallback (API: {apiError}).</p>
+				) : null}
 
 				{filtered.length === 0 ? (
 					<Card className="mt-6">
@@ -428,94 +487,72 @@ const Donate = () => {
 	);
 };
 
-function CategoryChip({
-	active,
-	onClick,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	children: string;
-}) {
-	return (
-		<Button
-			type="button"
-			variant={active ? "secondary" : "outline"}
-			size="sm"
-			onClick={onClick}
-			className={cn("rounded-full", active && "ring-1 ring-ring/30")}
-		>
-			{children}
-		</Button>
-	);
-}
-
-function CampaignCard({ campaign }: { campaign: Campaign }) {
+function CampaignCard({ campaign, large }: { campaign: Campaign; large?: boolean }) {
 	const progress = clampPercent((campaign.raisedEuro / campaign.goalEuro) * 100);
 	return (
-		<Card className="transition-shadow hover:shadow-md">
-			<img
-				src={campaign.imageUrl}
-				alt={campaign.title}
-				className="aspect-16/10 w-full object-cover"
-				loading="lazy"
-				decoding="async"
-				referrerPolicy="no-referrer"
-				onError={(e) => {
-					const img = e.currentTarget;
-					const fallback = campaignCoverFallback(campaign.category, campaign.title);
-					if (img.src !== fallback) img.src = fallback;
-				}}
-			/>
-			<CardHeader className="gap-2">
-				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="outline">{campaign.category}</Badge>
-					{campaign.status === "pending" ? (
-						<Badge variant="secondary">Në shqyrtim</Badge>
-					) : null}
-					<span className="text-xs text-muted-foreground">
-						{campaign.createdDaysAgo} ditë më parë
-					</span>
-				</div>
-				<CardTitle className="line-clamp-2">{campaign.title}</CardTitle>
-				<div className="text-sm text-muted-foreground">
-					Organizuar nga <span className="text-foreground">{campaign.organizer}</span>
-					{campaign.location ? (
-						<span className="text-muted-foreground"> • {campaign.location}</span>
-					) : null}
-				</div>
-			</CardHeader>
+		<Link
+			to={`/donate/${campaign.id}`}
+			className={cn(
+			"group row-span-1 flex cursor-pointer flex-col justify-between space-y-4 overflow-hidden rounded-lg border-0 bg-transparent ring-0 p-0 shadow-none outline-none transition-[background-color,box-shadow] duration-300 ease-in-out hover:bg-foreground/5 hover:shadow-[0_0_0_6px_rgba(15,23,42,0.05)]",
+			large ? "md:col-span-2" : "",
+			)}
+		>
+			<div className="flex h-52 min-h-24 w-full overflow-hidden rounded-lg">
+				<img
+					src={campaign.imageUrl}
+					alt={campaign.title}
+					className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+					loading="lazy"
+					decoding="async"
+					referrerPolicy="no-referrer"
+					onError={(e) => {
+						const img = e.currentTarget;
+						const fallback = campaignCoverFallback(campaign.category, campaign.title);
+						if (img.src !== fallback) img.src = fallback;
+					}}
+				/>
+			</div>
 
-			<CardContent className="space-y-3">
-				<div className="space-y-1.5">
-					<div className="flex items-center justify-between text-sm">
-						<span className="font-medium text-foreground">
-							{formatEuro(campaign.raisedEuro)}
-						</span>
-						<span className="text-muted-foreground">
-							qëllimi {formatEuro(campaign.goalEuro)}
-						</span>
+			<div className="p-4">
+				<div className="flex items-center justify-between">
+					<div>
+						<div className="text-sm font-bold text-card-foreground">{campaign.title}</div>
+						<div className="mt-2 text-sm text-muted-foreground">
+							{campaign.organizer} {campaign.location ? `• ${campaign.location}` : ""}
+						</div>
 					</div>
+				</div>
+
+				<div className="mt-4 space-y-2">
 					<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
 						<div
-							className="h-full rounded-full bg-primary transition-[width]"
+							className="h-full rounded-full bg-linear-to-r from-primary via-primary/85 to-accent"
 							style={{ width: `${progress}%` }}
 							aria-label="Progresi i mbledhjes"
 						/>
 					</div>
-					<div className="flex items-center justify-between text-xs text-muted-foreground">
-						<span>{campaign.donors} donatorë</span>
-						<span>{progress.toFixed(0)}%</span>
+					<div className="flex items-center justify-between text-sm">
+						<div className="font-semibold text-foreground">Te mbledhura: {formatEuro(campaign.raisedEuro)}</div>
+						<div className="text-muted-foreground">{campaign.donors} donatorë • {progress.toFixed(0)}%</div>
 					</div>
 				</div>
-			</CardContent>
 
-			<CardFooter className="border-t border-border/60">
-				<Button className="w-full" asChild>
-					<Link to={`/donate/${campaign.id}`}>Dhuro tani</Link>
-				</Button>
-			</CardFooter>
-		</Card>
+			</div>
+		</Link>
+	);
+}
+
+function CampaignCardSkeleton() {
+	return (
+		<div className="row-span-1 flex flex-col space-y-4 overflow-hidden rounded-lg p-0">
+			<div className="h-52 min-h-24 w-full animate-pulse rounded-lg bg-muted" />
+			<div className="space-y-3 p-4">
+				<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+				<div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+				<div className="h-2 w-full animate-pulse rounded bg-muted" />
+				<div className="h-3 w-2/3 animate-pulse rounded bg-muted" />
+			</div>
+		</div>
 	);
 }
 
