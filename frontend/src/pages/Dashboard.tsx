@@ -27,9 +27,10 @@ const euroFormatter = new Intl.NumberFormat("sq-AL", {
 });
 
 type StatsData = {
-	revenue: { value: number; delta: string };
+	charityRaised: { value: number; delta: string };
 	campaigns: { total: number; funded: number; delta: string };
 	users: { value: number; delta: string };
+	profit: { value: number; delta: string };
 	revenueOverTime: { month: string; revenue: number }[];
 	topDonations: { campaign: string; amount: number }[];
 };
@@ -89,12 +90,12 @@ const Dashboard = () => {
 					<>
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Të ardhura</CardTitle>
+								<CardTitle className="text-sm font-medium">Mbledhur për bamirësi</CardTitle>
 								<DollarSign className="size-4 text-muted-foreground" />
 							</CardHeader>
 							<CardContent>
-								<div className="font-bold text-2xl">{euroFormatter.format(stats.revenue.value)}</div>
-								<p className="text-muted-foreground text-xs">{stats.revenue.delta} nga muaji i kaluar</p>
+								<div className="font-bold text-2xl">{euroFormatter.format(stats.charityRaised.value)}</div>
+								<p className="text-muted-foreground text-xs">{stats.charityRaised.delta} nga muaji i kaluar</p>
 							</CardContent>
 						</Card>
 
@@ -122,12 +123,12 @@ const Dashboard = () => {
 
 						<Card>
 							<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-								<CardTitle className="text-sm font-medium">Funduara</CardTitle>
+								<CardTitle className="text-sm font-medium">Profit</CardTitle>
 								<CreditCard className="size-4 text-muted-foreground" />
 							</CardHeader>
 							<CardContent>
-								<div className="font-bold text-2xl">{stats.campaigns.funded}</div>
-								<p className="text-muted-foreground text-xs">Fushata të financuara</p>
+								<div className="font-bold text-2xl">{euroFormatter.format(stats.profit.value)}</div>
+								<p className="text-muted-foreground text-xs">{stats.profit.delta} nga muaji i kaluar</p>
 							</CardContent>
 						</Card>
 					</>

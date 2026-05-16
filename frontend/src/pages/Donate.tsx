@@ -71,6 +71,7 @@ const CAMPAIGNS: Campaign[] = [
 		donors: 146,
 		createdDaysAgo: 6,
 		featured: true,
+		status: "active",
 	},
 	{
 		id: "c-2",
@@ -85,6 +86,7 @@ const CAMPAIGNS: Campaign[] = [
 		donors: 58,
 		createdDaysAgo: 12,
 		featured: true,
+		status: "active",
 	},
 	{
 		id: "c-3",
@@ -98,6 +100,7 @@ const CAMPAIGNS: Campaign[] = [
 		raisedEuro: 910,
 		donors: 73,
 		createdDaysAgo: 3,
+		status: "active",
 	},
 	{
 		id: "c-4",
@@ -111,6 +114,7 @@ const CAMPAIGNS: Campaign[] = [
 		raisedEuro: 2450,
 		donors: 121,
 		createdDaysAgo: 2,
+		status: "active",
 	},
 	{
 		id: "c-5",
@@ -124,6 +128,7 @@ const CAMPAIGNS: Campaign[] = [
 		raisedEuro: 540,
 		donors: 41,
 		createdDaysAgo: 9,
+		status: "active",
 	},
 	{
 		id: "c-6",
@@ -137,6 +142,7 @@ const CAMPAIGNS: Campaign[] = [
 		raisedEuro: 1730,
 		donors: 84,
 		createdDaysAgo: 18,
+		status: "active",
 	},
 ];
 
@@ -274,15 +280,12 @@ const Donate = () => {
 	const sentinelRef = useRef<HTMLDivElement | null>(null);
 	const PAGE_SIZE = 9;
 
-	const canSeeClosedCampaign = useCallback(
+	const canSeeCampaign = useCallback(
 		(item: ApiCampaign) => {
-			if (item.status !== "failed") return true;
 			if (isPrivilegedViewer) return true;
-			const currentEmail = user?.email?.toLowerCase();
-			const creatorEmail = item.creator?.email?.toLowerCase();
-			return Boolean(currentEmail && creatorEmail && currentEmail === creatorEmail);
+			return item.status === "active";
 		},
-		[isPrivilegedViewer, user?.email],
+		[isPrivilegedViewer],
 	);
 
 	const fetchCampaignPage = useCallback(
@@ -300,8 +303,7 @@ const Donate = () => {
 				);
 				const isLegacyArrayResponse = Array.isArray(data);
 				const normalizedAll = normalizeCampaigns(data)
-					.filter((item) => item.status !== "draft")
-					.filter(canSeeClosedCampaign)
+					.filter(canSeeCampaign)
 					.map(mapToDonateCampaign);
 				const normalized = isLegacyArrayResponse
 					? normalizedAll.slice(
@@ -359,7 +361,7 @@ const Donate = () => {
 				}
 			}
 		},
-		[canSeeClosedCampaign],
+		[canSeeCampaign],
 	);
 
 	useEffect(() => {
