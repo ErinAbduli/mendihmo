@@ -1,122 +1,31 @@
-import { BsGithub, BsTwitterX, BsInstagram, BsLinkedin } from "react-icons/bs";
 import { Link } from "react-router";
+import { Mail, Github, Instagram, Linkedin } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Logo } from "@/components/logo";
 
 const footerSections = [
 	{
-		title: "Produkti",
+		title: "Platforma",
 		links: [
 			{
-				title: "Përmbledhje",
-				href: "#",
+				title: "Ballina",
+				href: "/",
 			},
 			{
-				title: "Veçori",
-				href: "#",
+				title: "Dhuro",
+				href: "/donate",
 			},
 			{
-				title: "Zgjidhje",
-				href: "#",
+				title: "Nis fushatë",
+				href: "/start-campaign",
 			},
-			{
-				title: "Udhëzues",
-				href: "#",
-			},
-			{
-				title: "Çmimet",
-				href: "#",
-			},
-			{
-				title: "Versionet",
-				href: "#",
-			},
-		],
-	},
-	{
-		title: "Kompania",
-		links: [
 			{
 				title: "Rreth nesh",
-				href: "#",
-			},
-			{
-				title: "Karriera",
-				href: "#",
-			},
-			{
-				title: "Shtypi",
-				href: "#",
-			},
-			{
-				title: "Lajme",
-				href: "#",
-			},
-			{
-				title: "Materialet e medias",
-				href: "#",
+				href: "/about",
 			},
 			{
 				title: "Kontakti",
-				href: "#",
-			},
-		],
-	},
-	{
-		title: "Burime",
-		links: [
-			{
-				title: "Blogu",
-				href: "#",
-			},
-			{
-				title: "Buletini",
-				href: "#",
-			},
-			{
-				title: "Ngjarje",
-				href: "#",
-			},
-			{
-				title: "Qendra e ndihmës",
-				href: "#",
-			},
-			{
-				title: "Udhëzues",
-				href: "#",
-			},
-			{
-				title: "Mbështetje",
-				href: "#",
-			},
-		],
-	},
-	{
-		title: "Rrjete sociale",
-		links: [
-			{
-				title: "Twitter",
-				href: "#",
-			},
-			{
-				title: "LinkedIn",
-				href: "#",
-			},
-			{
-				title: "Facebook",
-				href: "#",
-			},
-			{
-				title: "GitHub",
-				href: "#",
-			},
-			{
-				title: "AngelList",
-				href: "#",
-			},
-			{
-				title: "Dribbble",
-				href: "#",
+				href: "/contact",
 			},
 		],
 	},
@@ -124,32 +33,57 @@ const footerSections = [
 		title: "Ligjore",
 		links: [
 			{
-				title: "Kushtet",
-				href: "#",
+				title: "Politika e privatësisë",
+				href: "#privacy-policy",
 			},
 			{
-				title: "Privatësia",
-				href: "#",
+				title: "Kushtet e përdorimit",
+				href: "#terms",
 			},
 			{
 				title: "Cookies",
-				href: "#",
+				href: "#cookies",
 			},
 			{
-				title: "Licencat",
-				href: "#",
+				title: "Njoftimi ligjor",
+				href: "#legal-notice",
 			},
+		],
+	},
+	{
+		title: "Kontakt",
+		links: [
 			{
-				title: "Cilësimet",
-				href: "#",
+				title: "Email",
+				href: "mailto:support@mendihmo.com",
 			},
 			{
 				title: "Kontakti",
-				href: "#",
+				href: "/contact",
+			},
+			{
+				title: "Rreth nesh",
+				href: "/about",
 			},
 		],
 	},
 ];
+
+const renderFooterLink = (href: string, title: string) => {
+	if (href.startsWith("/") ) {
+		return (
+			<Link className="text-muted-foreground hover:text-foreground" to={href}>
+				{title}
+			</Link>
+		);
+	}
+
+	return (
+		<a className="text-muted-foreground hover:text-foreground" href={href}>
+			{title}
+		</a>
+	);
+};
 
 const Footer = () => {
 	return (
@@ -168,48 +102,67 @@ const Footer = () => {
 						</p>
 					</div>
 
-					{footerSections.map(({ title, links }) => (
-						<div key={title}>
-							<h6 className="font-medium">{title}</h6>
-							<ul className="mt-6 space-y-4">
-								{links.map(({ title, href }) => (
-									<li key={title}>
-										<Link
-											className="text-muted-foreground hover:text-foreground"
-											to={href}
-										>
-											{title}
-										</Link>
-									</li>
-								))}
-							</ul>
-						</div>
-					))}
+					<div className="col-span-full flex flex-wrap justify-end gap-x-8 gap-y-10 xl:col-span-5">
+						{footerSections.map(({ title, links }) => (
+							<div key={title} className="text-left">
+								<h6 className="font-medium">{title}</h6>
+								<ul className="mt-6 space-y-4">
+									{links.map(({ title, href }) => (
+										<li key={title}>
+											{renderFooterLink(href, title)}
+										</li>
+									))}
+								</ul>
+							</div>
+						))}
+					</div>
 				</div>
 				<Separator />
 				<div className="flex flex-col-reverse items-center justify-between gap-x-3 gap-y-4 px-4 py-6 sm:flex-row sm:px-6 sm:py-8 xl:px-0">
 					{/* Copyright */}
 					<span className="text-center text-sm text-muted-foreground sm:text-left">
 						&copy; {new Date().getFullYear()}{" "}
-						<Link to="/" target="_blank">
+						<Link to="/">
 							mëndihmo
 						</Link>
 						. Të gjitha të drejtat e rezervuara.
 					</span>
 
-					<div className="flex flex-wrap items-center justify-center gap-4 text-muted-foreground sm:justify-end">
-						<Link to="#" target="_blank">
-							<BsTwitterX className="h-5 w-5" />
-						</Link>
-						<Link to="#" target="_blank">
-							<BsInstagram className="h-5 w-5" />
-						</Link>
-						<Link to="#" target="_blank">
-							<BsGithub className="h-5 w-5" />
-						</Link>
-						<Link to="#" target="_blank">
-							<BsLinkedin className="h-5 w-5" />
-						</Link>
+					<div className="flex flex-wrap items-center justify-center gap-3 text-muted-foreground sm:justify-end">
+						<a
+							href="mailto:support@mendihmo.com"
+							aria-label="Email support"
+							className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background transition hover:border-primary hover:text-primary"
+						>
+							<Mail className="size-4" />
+						</a>
+						<a
+							href="https://github.com/"
+							target="_blank"
+							rel="noreferrer"
+							aria-label="GitHub"
+							className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background transition hover:border-primary hover:text-primary"
+						>
+							<Github className="size-4" />
+						</a>
+						<a
+							href="https://www.instagram.com/"
+							target="_blank"
+							rel="noreferrer"
+							aria-label="Instagram"
+							className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background transition hover:border-primary hover:text-primary"
+						>
+							<Instagram className="size-4" />
+						</a>
+						<a
+							href="https://www.linkedin.com/"
+							target="_blank"
+							rel="noreferrer"
+							aria-label="LinkedIn"
+							className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background transition hover:border-primary hover:text-primary"
+						>
+							<Linkedin className="size-4" />
+						</a>
 					</div>
 				</div>
 			</div>
