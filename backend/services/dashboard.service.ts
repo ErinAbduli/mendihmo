@@ -67,7 +67,7 @@ export const getDashboardStats = async () => {
   }
   revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + transaction.amount);
 
-  const profit = Number((transaction.amount * 0.019 + 0.1).toFixed(2));
+     const profit = Number((transaction.amount * 0.029 + 0.1).toFixed(2));
   const charity = Number((transaction.amount - profit).toFixed(2));
 
   totalProfit += profit;
