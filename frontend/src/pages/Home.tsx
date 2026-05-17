@@ -3,6 +3,7 @@ import { HowItWorks } from "@/components/ui/how-it-works";
 import PlaftormStats from "@/components/plaftorm-stats";
 import SuccessfulCampaignsWeek from "@/components/successful-campaigns-week";
 import Testimonials from "@/components/ui/testimonials-columns-1";
+import FAQs from "@/components/ui/faq";
 import CallToAction from "@/components/ui/call-to-action-1";
 const Home = () => {
 	return (
@@ -12,6 +13,7 @@ const Home = () => {
 			<HowItWorks />
 			<PlaftormStats />
 			<Testimonials />
+			<FAQs />
 			<CallToAction />
 		</>
 	);
