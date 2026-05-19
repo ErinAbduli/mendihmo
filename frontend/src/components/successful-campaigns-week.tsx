@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { isAxiosError } from "axios";
 import { Badge } from "@/components/ui/badge";
 import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
@@ -109,11 +110,16 @@ function mapCampaignToShowcaseItem(campaign: ApiCampaign): ShowcaseItem {
 		title: campaign.title,
 		totalRaised: campaign.currentAmount,
 		header: (
-			<img
-				src={imageUrl}
-				alt={campaign.title}
-				className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
-			/>
+			<div className="relative h-full w-full">
+				<img
+					src={imageUrl}
+					alt={campaign.title}
+					className="h-full w-full object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+				/>
+				<Link to={`/donate/${campaign.id}`} className="absolute inset-0" aria-label={`Shiko ${campaign.title}`}>
+					<span className="sr-only">Hap fushatën {campaign.title}</span>
+				</Link>
+			</div>
 		),
 		className: "md:col-span-1",
 	};
@@ -224,25 +230,25 @@ const SuccessfulCampaignsWeek = () => {
 							const barPercent = topWeekly > 0 ? clampPercent((item.totalRaised / topWeekly) * 100) : 0;
 
 							return (
-							<BentoGridItem
-								key={item.id}
-								title={item.title}
-								header={item.header}
-								footer={
-									<div className="space-y-1.5">
-										<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-											<div
-												className="h-full rounded-full bg-linear-to-r from-primary via-primary/85 to-accent"
-												style={{ width: `${barPercent}%` }}
-											/>
-										</div>
-										<p className="text-sm font-semibold tracking-tight text-foreground/90 sm:text-base">
+								<BentoGridItem
+									key={item.id}
+									title={item.title}
+									header={item.header}
+									footer={
+										<div className="space-y-1.5">
+											<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+												<div
+													className="h-full rounded-full bg-linear-to-r from-primary via-primary/85 to-accent"
+													style={{ width: `${barPercent}%` }}
+												/>
+											</div>
+											<p className="text-sm font-semibold tracking-tight text-foreground/90 sm:text-base">
 											{formatEuro(item.totalRaised)} të mbledhura
-										</p>
-									</div>
-								}
-								className={i === 0 ? "md:col-span-2" : i === 3 ? "md:col-span-2" : "md:col-span-1"}
-							/>
+											</p>
+										</div>
+									}
+									className={i === 0 ? "md:col-span-2" : i === 3 ? "md:col-span-2" : "md:col-span-1"}
+								/>
 							);
 						})}
 					</BentoGrid>
